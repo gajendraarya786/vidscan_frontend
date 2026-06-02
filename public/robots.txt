@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# Dynamic robots.txt generated at runtime from app/robots.ts
+# Update the sitemap URL below when deploying to production
+Sitemap: https://vidscan.app/sitemap.xml
