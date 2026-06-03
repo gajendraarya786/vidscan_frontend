@@ -645,18 +645,20 @@ export default function PreviewPage() {
 
   return (
 
-    <div className="min-h-screen bg-[#f4f5f9] text-slate-800 flex flex-col overflow-hidden font-sans select-none">
+    <div className="h-screen bg-[#f0f2f7] text-slate-800 flex flex-col overflow-hidden font-sans select-none">
 
       {/* ─── Navbar ──────────────────────────────────────────────────────────── */}
-      <nav className="bg-gradient-to-r from-pink-600 to-indigo-700 text-white shadow-md px-4 py-3 flex-shrink-0 z-10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <Link href="/convert" className="text-sm text-pink-100 hover:text-white transition flex items-center gap-1 font-semibold">
-            ← Back to scanner
+      <nav className="bg-gradient-to-r from-pink-600 to-indigo-700 text-white shadow-lg px-4 py-3 flex-shrink-0 z-10">
+        <div className="flex items-center justify-between">
+          <Link href="/convert" className="text-sm text-pink-100 hover:text-white transition flex items-center gap-1.5 font-semibold group">
+            <svg className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            Back to scanner
           </Link>
-          <span className="font-semibold text-white text-sm flex items-center gap-1.5">
-            📄 VidScan Editor
+          <span className="font-bold text-white text-sm flex items-center gap-2 tracking-tight">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            VidScan Editor
           </span>
-          <span className="w-16" />
+          <span className="w-32" />
         </div>
       </nav>
 
@@ -672,22 +674,25 @@ export default function PreviewPage() {
           </Link>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col md:grid md:grid-cols-3 overflow-hidden h-[calc(100vh-60px)] md:h-[calc(100vh-124px)] relative bg-[#f4f5f9]">
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden" style={{height: 'calc(100vh - 52px)'}}>
 
           {/* ─── DESKTOP LEFT PANEL: Thumbnails Strip (Hidden on mobile) ───────── */}
-          <div className="hidden md:flex border-r border-slate-200 bg-white flex-col md:col-span-1 h-full overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 flex-shrink-0">
-              <h3 className="font-semibold text-slate-500 text-xs uppercase tracking-wider">Scanned Pages</h3>
-              <span className="text-xs bg-pink-50 text-pink-700 border border-pink-100 font-semibold px-2 py-0.5 rounded-full font-mono">
-                {pages.length} total
+          <div className="hidden md:flex flex-col bg-white border-r border-slate-200/80 flex-shrink-0 overflow-hidden shadow-sm" style={{width: '220px'}}>
+            {/* Header */}
+            <div className="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between flex-shrink-0 bg-gradient-to-r from-slate-50 to-white">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-pink-500"></div>
+                <h3 className="font-bold text-slate-600 text-xs uppercase tracking-widest">Pages</h3>
+              </div>
+              <span className="text-[11px] bg-pink-600 text-white font-bold px-2 py-0.5 rounded-full font-mono shadow-sm">
+                {pages.length}
               </span>
             </div>
 
-            {/* Scrollable list */}
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+            {/* Scrollable thumbnail list — only thumbnails scroll */}
+            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
               {pages.map((p, idx) => {
                 const isSelected = idx === activeIdx;
-
                 return (
                   <div
                     key={p.id}
@@ -696,294 +701,216 @@ export default function PreviewPage() {
                     onDragOver={(e) => handleDragOver(e, idx)}
                     onDrop={(e) => handleDrop(e, idx)}
                     onDragEnd={handleDragEnd}
-                    onClick={() => {
-                      setActiveIdx(idx);
-                    }}
-                    className={`relative group shrink-0 bg-white rounded-xl border p-1.5 cursor-pointer shadow-sm transition-all flex flex-col justify-between
-                      ${isSelected ? "border-pink-600 ring-4 ring-pink-500/10" : "border-slate-200 hover:border-slate-350"}
-                      ${dragOverIdx === idx ? "border-dashed border-pink-400 bg-pink-50/50 scale-[0.98]" : ""}
+                    onClick={() => setActiveIdx(idx)}
+                    className={`relative group shrink-0 rounded-xl border-2 cursor-pointer transition-all duration-200
+                      ${isSelected
+                        ? 'border-pink-500 shadow-[0_0_0_3px_rgba(236,72,153,0.15)] bg-white'
+                        : 'border-slate-200 hover:border-pink-300 bg-white hover:shadow-md'
+                      }
+                      ${dragOverIdx === idx ? 'border-dashed border-pink-400 bg-pink-50/50 scale-[0.97]' : ''}
                     `}
                   >
-                    {/* Page image container */}
-                    <div className="aspect-[4/3] w-full relative bg-slate-50 rounded-lg overflow-hidden flex items-center justify-center border border-slate-100">
+                    {/* Selected indicator stripe */}
+                    {isSelected && (
+                      <div className="absolute left-0 top-3 bottom-3 w-0.5 bg-pink-500 rounded-r-full" />
+                    )}
+
+                    {/* Thumbnail image */}
+                    <div className="aspect-[3/4] w-full relative bg-slate-50 rounded-[10px] overflow-hidden flex items-center justify-center">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={`data:image/jpeg;base64,${p.image}`}
                         alt={`Page ${idx + 1}`}
-                        className="max-h-full max-w-full object-contain pointer-events-none transition-transform duration-200"
+                        className="max-h-full max-w-full object-contain pointer-events-none"
                         style={{
                           transform: `rotate(${p.rotation}deg)`,
                           filter: `brightness(${100 + p.brightness * 2}%) contrast(${100 + p.contrast * 2}%)`,
                         }}
                       />
-                      {/* Page badge */}
-                      <span className="absolute bottom-1.5 left-1.5 bg-slate-900/75 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                        Page {idx + 1}
+                      {/* Page number badge */}
+                      <span className="absolute bottom-1 left-1 bg-slate-900/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                        {idx + 1}
                       </span>
                     </div>
 
-                    {/* Delete badge */}
-                    <div className="absolute top-2.5 right-2.5 flex gap-1">
-                      <button
-                        onClick={(e) => handleDelete(e, idx)}
-                        aria-label={`Delete Page ${idx + 1}`}
-                        className="bg-red-500 hover:bg-red-650 text-white rounded-full p-1 shadow-md opacity-90 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:scale-105"
-                      >
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    {/* Drag Handle indicator */}
-                    <div className="absolute bottom-2.5 right-2.5 opacity-40 md:opacity-0 md:group-hover:opacity-60 transition-opacity pointer-events-none">
-                      <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    {/* Page label */}
+                    <div className="px-2 py-1.5 flex items-center justify-between">
+                      <span className={`text-[10px] font-semibold truncate ${isSelected ? 'text-pink-600' : 'text-slate-500'}`}>
+                        Page {idx + 1}
+                      </span>
+                      {/* Drag icon */}
+                      <svg className="h-3 w-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                       </svg>
                     </div>
+
+                    {/* Delete button */}
+                    <button
+                      onClick={(e) => handleDelete(e, idx)}
+                      aria-label={`Delete Page ${idx + 1}`}
+                      className="absolute top-1.5 right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5 shadow opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                    >
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                 );
               })}
+            </div>
 
-              {/* Add Page Options */}
-              <div className="grid grid-cols-2 gap-3 shrink-0 mt-2">
+            {/* ── Add Page Footer (fixed, never scrolls) ─────────────────── */}
+            <div className="flex-shrink-0 p-3 border-t border-slate-100 bg-gradient-to-t from-slate-50 to-white">
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 text-center">Add Page</p>
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="group relative flex flex-col items-center justify-center gap-2 rounded-2xl border border-pink-200/50 bg-gradient-to-br from-white to-pink-50/30 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 hover:shadow-[0_8px_20px_-6px_rgba(219,39,119,0.15)] focus:outline-none"
+                  className="group flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-pink-200 bg-pink-50/50 py-2.5 transition-all hover:border-pink-400 hover:bg-pink-50 hover:shadow-sm focus:outline-none"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-pink-100/80 text-pink-650 transition-transform group-hover:scale-110">
-                    <span className="text-lg">📁</span>
-                  </div>
-                  <span className="text-[11px] font-bold text-slate-600 tracking-wide">Upload Photo</span>
+                  <svg className="h-4 w-4 text-pink-400 group-hover:text-pink-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  <span className="text-[10px] font-bold text-slate-500 group-hover:text-pink-600 transition-colors">Upload</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setCaptureMode("add");
-                    openCamera();
-                  }}
-                  className="group relative flex flex-col items-center justify-center gap-2 rounded-2xl border border-indigo-200/50 bg-gradient-to-br from-white to-indigo-50/30 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-300 hover:shadow-[0_8px_20px_-6px_rgba(67,56,202,0.15)] focus:outline-none"
+                  onClick={() => { setCaptureMode("add"); openCamera(); }}
+                  className="group flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-indigo-200 bg-indigo-50/50 py-2.5 transition-all hover:border-indigo-400 hover:bg-indigo-50 hover:shadow-sm focus:outline-none"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100/80 text-indigo-650 transition-transform group-hover:scale-110">
-                    <span className="text-lg">📷</span>
-                  </div>
-                  <span className="text-[11px] font-bold text-slate-600 tracking-wide">Capture Photo</span>
+                  <svg className="h-4 w-4 text-indigo-400 group-hover:text-indigo-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><circle cx="12" cy="13" r="3" /></svg>
+                  <span className="text-[10px] font-bold text-slate-500 group-hover:text-indigo-600 transition-colors">Camera</span>
                 </button>
               </div>
-
             </div>
           </div>
 
-          {/* ─── DESKTOP/MOBILE SHARED VIEWPORT STAGE ─────────────────────────── */}
-          <div className="flex-1 md:col-span-2 bg-[#f4f5f9] flex flex-col overflow-hidden relative">
+          {/* ─── CENTER: Canvas Viewport ─────────────────────────────────────────── */}
+          <div className="flex-1 flex flex-col overflow-hidden relative bg-[#f0f2f7]">
             {activePage ? (
-              <div className="flex-1 flex flex-col w-full h-full p-4 md:p-6 justify-between overflow-hidden">
+              <div className="flex-1 flex flex-col w-full h-full overflow-hidden">
 
-                {/* ─── DESKTOP ONLY: Top Editor controls ─────────────────────── */}
-                <div className="hidden md:flex bg-white border border-slate-200 rounded-2xl p-4 mb-4 shadow-sm flex-col gap-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleRotateLeft}
-                        disabled={isCropping}
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold transition flex items-center gap-1"
-                      >
-                        ↩️ Rotate Left
-                      </button>
-                      <button
-                        onClick={handleRotateRight}
-                        disabled={isCropping}
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold transition flex items-center gap-1"
-                      >
-                        ↪️ Rotate Right
-                      </button>
+                {/* Canvas area */}
+                <div className="flex-1 flex flex-col items-stretch relative overflow-hidden">
 
-                      {/* Crop Toggle */}
-                      <button
-                        onClick={() => {
-                          setIsCropping((v) => !v);
-                          setActivePanel("none");
-                        }}
-                        className={`rounded-xl px-4 py-2 text-xs font-semibold transition flex items-center gap-1.5
-                          ${isCropping
-                            ? "bg-pink-600 text-white shadow-sm"
-                            : "bg-slate-100 hover:bg-slate-200 text-slate-700"
-                          }`}
-                      >
-                        Crop
-                      </button>
-
-                      {/* Filters Toggle */}
-                      <button
-                        onClick={() => {
-                          setActivePanel(activePanel === "filters" ? "none" : "filters");
-                          setIsCropping(false);
-                        }}
-                        disabled={isCropping}
-                        className={`rounded-xl px-4 py-2 text-xs font-semibold transition flex items-center gap-1.5
-                          ${activePanel === "filters"
-                            ? "bg-pink-600 text-white shadow-sm"
-                            : "bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-40"
-                          }`}
-                      >
-                        🎨 Filters
-                      </button>
-
-                      {/* Adjust Toggle */}
-                      <button
-                        onClick={() => {
-                          setActivePanel(activePanel === "adjust" ? "none" : "adjust");
-                          setIsCropping(false);
-                        }}
-                        disabled={isCropping}
-                        className={`rounded-xl px-4 py-2 text-xs font-semibold transition flex items-center gap-1.5
-                          ${activePanel === "adjust"
-                            ? "bg-pink-600 text-white shadow-sm"
-                            : "bg-slate-100 hover:bg-slate-200 text-slate-750 disabled:opacity-40"
-                          }`}
-                      >
-                        ⚙️ Adjust
-                      </button>
-
-                      {/* Recapture Photo */}
-                      <button
-                        onClick={() => {
-                          setCaptureMode("recapture");
-                          openCamera();
-                        }}
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold transition flex items-center gap-1"
-                      >
-                        📷 Recapture
-                      </button>
+                  {/* Crop active banner (desktop only) */}
+                  {isCropping && (
+                    <div className="hidden md:flex items-center justify-center gap-2 bg-pink-600 text-white text-xs font-bold py-2 px-4 flex-shrink-0">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 2v14a2 2 0 002 2h14M18 22V8a2 2 0 00-2-2H2" /></svg>
+                      Drag the corners to adjust perspective — click <span className="bg-white/20 px-1.5 py-0.5 rounded ml-1 mr-1">Confirm</span> when done
                     </div>
+                  )}
 
-                    <button
-                      onClick={resetEdits}
-                      disabled={isCropping}
-                      className="bg-red-50 hover:bg-red-100 border border-red-200 text-red-650 rounded-xl px-4 py-2 text-xs font-semibold transition"
-                    >
-                      Reset All
-                    </button>
+                  {/* Main canvas viewport */}
+                  <div className="flex-1 flex items-center justify-center relative overflow-hidden p-6 pb-20">
+                    {/* Applying crop overlay */}
+                    {isCropApplying && (
+                      <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+                        <div className="flex flex-col items-center gap-3 bg-white rounded-2xl px-8 py-6 shadow-2xl border border-slate-200">
+                          <div className="animate-spin rounded-full h-9 w-9 border-b-2 border-pink-600" />
+                          <p className="text-sm text-slate-600 font-semibold">Applying perspective crop…</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {isCropping ? (
+                      <div className="w-full h-full relative z-20">
+                        <PerspectiveCropOverlay
+                          imageUrl={`data:image/jpeg;base64,${activePage.originalImage}`}
+                          imageAlt={`Page ${activeIdx + 1} Editor`}
+                          initialPoints={activePage.crop}
+                          onConfirm={handleCropConfirm}
+                          onCancel={() => setIsCropping(false)}
+                        />
+                      </div>
+                    ) : (
+                      <div className="relative flex items-center justify-center w-full h-full">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`data:image/jpeg;base64,${activePage.image}`}
+                          alt="Active Preview"
+                          className="max-h-full max-w-full object-contain rounded-xl border border-slate-200/80 bg-white shadow-[0_8px_40px_rgba(0,0,0,0.12)] transition-all duration-300 ease-out hidden md:block"
+                          style={{
+                            filter: `brightness(${100 + activePage.brightness * 2}%) contrast(${100 + activePage.contrast * 2}%)`,
+                            transform: `rotate(${activePage.rotation}deg)`,
+                          }}
+                        />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`data:image/jpeg;base64,${activePage.image}`}
+                          alt="Active Preview"
+                          className="max-h-[50vh] max-w-full object-contain rounded-xl border border-slate-200/80 bg-white shadow-md transition-all duration-300 ease-out md:hidden"
+                          style={{
+                            filter: `brightness(${100 + activePage.brightness * 2}%) contrast(${100 + activePage.contrast * 2}%)`,
+                            transform: `rotate(${activePage.rotation}deg)`,
+                          }}
+                        />
+
+                        {/* Desktop page info badge */}
+                        <div className="hidden md:flex absolute top-3 left-3 items-center gap-1.5 bg-slate-900/80 border border-white/10 backdrop-blur text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow">
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                          Page {activeIdx + 1} of {pages.length}
+                          <span className="ml-1 bg-white/20 rounded px-1">{activePage.filter.toUpperCase()}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Desktop panel option rows */}
-                  {activePanel === "filters" && (
-                    <div className="border-t border-slate-100 pt-4 animate-in slide-in-from-top-2 duration-150">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2 px-1">
-                        Scan Enhancement Filter
-                      </span>
-                      <div className="grid grid-cols-5 gap-1.5">
-                        {FILTERS.map((f) => (
-                          <button
-                            key={f.id}
-                            onClick={() => handleFilterSelect(f.id)}
-                            className={`flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl text-[10px] font-bold transition-all
-                              ${activePage.filter === f.id
-                                ? "bg-pink-600 text-white shadow-sm"
-                                : "bg-slate-50 border border-slate-200 text-slate-650 hover:text-slate-900 hover:bg-slate-100"
-                              }
-                            `}
-                          >
-                            <span className="text-sm">{f.icon}</span>
-                            <span className="truncate w-full text-center px-0.5">{f.label}</span>
-                          </button>
-                        ))}
-                      </div>
+                  {/* ── DESKTOP FLOATING BOTTOM TOOLBAR ── always visible, never scrolls */}
+                  <div className="hidden md:flex absolute bottom-4 left-1/2 -translate-x-1/2 items-center bg-white/95 backdrop-blur-sm border border-slate-200/80 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.10)] px-2 py-1.5 gap-0.5 z-20">
+                    {/* Rotate Left */}
+                    <button
+                      onClick={handleRotateLeft}
+                      disabled={isCropping}
+                      title="Rotate Left"
+                      className="group flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:text-slate-900"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Rotate
+                    </button>
 
-                      {activePage.filter !== "original" && (
-                        <div className="mt-4 border-t border-slate-100 pt-4">
-                          <div className="flex justify-between items-center text-xs mb-1.5">
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                              {activePage.filter === "whiteboard" ? "Threshold Level" : "Filter Intensity"}
-                            </span>
-                            <span className="text-pink-600 font-bold font-mono">{activePage.filterIntensity}%</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={activePage.filterIntensity}
-                            onChange={(e) => handleIntensityChange(parseInt(e.target.value))}
-                            className="w-full h-1 appearance-none rounded-full bg-slate-200 accent-pink-600 cursor-pointer focus:outline-none"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    <div className="w-px h-6 bg-slate-200 mx-0.5" />
 
-                  {activePanel === "adjust" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-550 font-semibold">Brightness</span>
-                          <span className="text-pink-600 font-bold font-mono">{activePage.brightness}</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="-50"
-                          max="50"
-                          value={activePage.brightness}
-                          onChange={(e) => updateActivePage({ brightness: parseInt(e.target.value) })}
-                          className="w-full h-1 appearance-none rounded-full bg-slate-200 accent-pink-600 cursor-pointer focus:outline-none"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-550 font-semibold">Contrast</span>
-                          <span className="text-pink-600 font-bold font-mono">{activePage.contrast}</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="-50"
-                          max="50"
-                          value={activePage.contrast}
-                          onChange={(e) => updateActivePage({ contrast: parseInt(e.target.value) })}
-                          className="w-full h-1 appearance-none rounded-full bg-slate-200 accent-pink-600 cursor-pointer focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
+                    {/* Crop toggle */}
+                    <button
+                      onClick={() => { setIsCropping((v) => !v); setActivePanel("none"); }}
+                      title={isCropping ? 'Exit Crop Mode' : 'Crop & Perspective'}
+                      className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all
+                        ${isCropping
+                          ? 'bg-pink-600 text-white shadow-md'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 2v14a2 2 0 002 2h14M18 22V8a2 2 0 00-2-2H2" />
+                      </svg>
+                      {isCropping ? 'Exit Crop' : 'Crop'}
+                    </button>
 
-                {/* Viewport Canvas (Centered Preview Area) */}
-                <div className="flex-1 bg-slate-200/30 border border-slate-200/80 md:rounded-2xl rounded-xl p-4 flex items-center justify-center relative overflow-hidden min-h-[300px] shadow-inner">
-                  {isCropApplying && (
-                    <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/80 backdrop-blur-[1px] md:rounded-2xl rounded-xl">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="animate-spin rounded-full h-9 w-9 border-b-2 border-pink-600" />
-                        <p className="text-sm text-slate-600 font-medium">Applying perspective crop…</p>
-                      </div>
-                    </div>
-                  )}
+                    <div className="w-px h-6 bg-slate-200 mx-0.5" />
 
-                  {isCropping ? (
-                    <div className="w-full max-h-full relative z-20">
-                      <PerspectiveCropOverlay
-                        imageUrl={`data:image/jpeg;base64,${activePage.originalImage}`}
-                        imageAlt={`Page ${activeIdx + 1} Editor`}
-                        initialPoints={activePage.crop}
-                        onConfirm={handleCropConfirm}
-                        onCancel={() => setIsCropping(false)}
-                      />
+                    {/* Rotate Right */}
+                    <button
+                      onClick={handleRotateRight}
+                      disabled={isCropping}
+                      title="Rotate Right"
+                      className="group flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:text-slate-900"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} style={{transform: 'scaleX(-1)'}}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Rotate
+                    </button>
+
+                    <div className="w-px h-6 bg-slate-200 mx-0.5" />
+
+                    {/* Page counter */}
+                    <div className="flex items-center gap-1 px-3 py-2 text-xs text-slate-400 font-semibold">
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      <span className="font-bold text-slate-600">{activeIdx + 1}</span>
+                      <span>/ {pages.length}</span>
                     </div>
-                  ) : (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`data:image/jpeg;base64,${activePage.image}`}
-                        alt="Active Preview"
-                        className="max-h-[50vh] md:max-h-[60vh] max-w-full object-contain shadow-md transition-all duration-300 ease-out rounded-lg border border-slate-200 bg-white"
-                        style={{
-                          filter: `brightness(${100 + activePage.brightness * 2}%) contrast(${100 + activePage.contrast * 2}%)`,
-                          transform: `rotate(${activePage.rotation}deg)`,
-                        }}
-                      />
-                      <div className="absolute top-4 left-4 bg-slate-900/75 border border-slate-800 backdrop-blur text-slate-200 text-[10px] font-bold px-2.5 py-1 rounded-lg">
-                        Page {activeIdx + 1} ({activePage.filter.toUpperCase()})
-                      </div>
-                    </>
-                  )}
+                  </div>
                 </div>
 
                 {/* Mobile top page indicator overlay */}
@@ -991,7 +918,7 @@ export default function PreviewPage() {
                   Page {activeIdx + 1} of {pages.length}
                 </div>
 
-                {/* Mobile horizontal thumbnails strip (shown by default on normal view) */}
+                {/* Mobile horizontal thumbnails strip */}
                 <div className="md:hidden mt-2 mb-1 w-full bg-white border border-slate-200 rounded-2xl p-3 shadow-sm shrink-0">
                   <div className="flex justify-between items-center mb-1.5 px-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans">Document Pages</span>
@@ -1004,9 +931,7 @@ export default function PreviewPage() {
                       return (
                         <div
                           key={p.id}
-                          onClick={() => {
-                            setActiveIdx(idx);
-                          }}
+                          onClick={() => setActiveIdx(idx)}
                           className={`relative group shrink-0 w-16 bg-slate-50 rounded-xl border-2 p-0.5 cursor-pointer transition-all
                               ${isSelected ? "border-pink-600 bg-pink-50/10" : "border-slate-100"}
                             `}
@@ -1023,7 +948,6 @@ export default function PreviewPage() {
                               {idx + 1}
                             </span>
                           </div>
-
                           <button
                             onClick={(e) => handleDelete(e, idx)}
                             className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 shadow-md hover:bg-red-650"
@@ -1035,8 +959,6 @@ export default function PreviewPage() {
                         </div>
                       );
                     })}
-
-                    {/* Inline upload card inside mobile strip */}
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
@@ -1045,14 +967,9 @@ export default function PreviewPage() {
                       <span className="text-base leading-none">📁</span>
                       <span className="text-[9px] font-bold text-slate-600 font-medium">Upload</span>
                     </button>
-
-                    {/* Inline camera capture card inside mobile strip */}
                     <button
                       type="button"
-                      onClick={() => {
-                        setCaptureMode("add");
-                        openCamera();
-                      }}
+                      onClick={() => { setCaptureMode("add"); openCamera(); }}
                       className="shrink-0 w-16 aspect-[3/4] border border-dashed border-indigo-200 bg-gradient-to-b from-white to-indigo-50/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-all text-indigo-655 active:scale-95 shadow-sm"
                     >
                       <span className="text-base leading-none">📷</span>
@@ -1067,63 +984,36 @@ export default function PreviewPage() {
               </div>
             )}
 
-            {/* ─── MOBILE BOTTOM SHEETS (Slide Up Modals) ──────────────────────── */}
+            {/* ─── MOBILE BOTTOM SHEETS ─────────────────────────────────────────── */}
             {activeSheet !== "none" && !isCropping && (
               <>
-                {/* Backdrop overlay (Transparent & No Blur) */}
-                <div
-                  onClick={() => setActiveSheet("none")}
-                  className="absolute inset-0 bg-transparent z-30"
-                />
-
-                {/* Modal Container */}
+                <div onClick={() => setActiveSheet("none")} className="absolute inset-0 bg-transparent z-30" />
                 <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-250 rounded-t-3xl p-5 pb-8 z-40 animate-in slide-in-from-bottom duration-200 max-h-[85vh] overflow-y-auto shadow-2xl text-slate-800">
                   <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
-
-                  {/* Filters Sheet */}
                   {activeSheet === "filters" && activePage && (
                     <div className="space-y-4">
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Choose Scan Enhancement</span>
                       <div className="grid grid-cols-5 gap-1.5">
                         {FILTERS.map((f) => (
-                          <button
-                            key={f.id}
-                            onClick={() => handleFilterSelect(f.id)}
-                            className={`flex flex-col items-center gap-1.5 py-3.5 px-0.5 rounded-xl text-[10px] font-bold transition-all
-                              ${activePage.filter === f.id
-                                ? "bg-pink-600 text-white shadow-sm"
-                                : "bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900"
-                              }
-                            `}
+                          <button key={f.id} onClick={() => handleFilterSelect(f.id)}
+                            className={`flex flex-col items-center gap-1.5 py-3.5 px-0.5 rounded-xl text-[10px] font-bold transition-all ${activePage.filter === f.id ? "bg-pink-600 text-white shadow-sm" : "bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900"}`}
                           >
                             <span className="text-sm">{f.icon}</span>
                             <span className="truncate w-full text-center px-0.5">{f.label}</span>
                           </button>
                         ))}
                       </div>
-
                       {activePage.filter !== "original" && (
                         <div className="mt-4 border-t border-slate-100 pt-4">
                           <div className="flex justify-between items-center text-xs mb-1.5">
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                              {activePage.filter === "whiteboard" ? "Threshold Level (Line Thickness)" : "Enhancement Intensity"}
-                            </span>
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{activePage.filter === "whiteboard" ? "Threshold Level (Line Thickness)" : "Enhancement Intensity"}</span>
                             <span className="text-pink-600 font-bold font-mono">{activePage.filterIntensity}%</span>
                           </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={activePage.filterIntensity}
-                            onChange={(e) => handleIntensityChange(parseInt(e.target.value))}
-                            className="w-full h-1.5 appearance-none rounded-full bg-slate-100 border border-slate-200 accent-pink-600 cursor-pointer focus:outline-none"
-                          />
+                          <input type="range" min="0" max="100" value={activePage.filterIntensity} onChange={(e) => handleIntensityChange(parseInt(e.target.value))} className="w-full h-1.5 appearance-none rounded-full bg-slate-100 border border-slate-200 accent-pink-600 cursor-pointer focus:outline-none" />
                         </div>
                       )}
                     </div>
                   )}
-
-                  {/* Adjustments Sheet */}
                   {activeSheet === "adjust" && activePage && (
                     <div className="space-y-4">
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Manual Adjustments</span>
@@ -1133,28 +1023,14 @@ export default function PreviewPage() {
                             <span className="text-slate-500 font-semibold">Brightness</span>
                             <span className="text-pink-700 font-bold font-mono">{activePage.brightness}</span>
                           </div>
-                          <input
-                            type="range"
-                            min="-50"
-                            max="50"
-                            value={activePage.brightness}
-                            onChange={(e) => updateActivePage({ brightness: parseInt(e.target.value) })}
-                            className="w-full h-1.5 appearance-none rounded-full bg-slate-100 border border-slate-205 accent-pink-600 cursor-pointer focus:outline-none"
-                          />
+                          <input type="range" min="-50" max="50" value={activePage.brightness} onChange={(e) => updateActivePage({ brightness: parseInt(e.target.value) })} className="w-full h-1.5 appearance-none rounded-full bg-slate-100 border border-slate-205 accent-pink-600 cursor-pointer focus:outline-none" />
                         </div>
                         <div className="space-y-1.5">
                           <div className="flex justify-between items-center text-xs">
                             <span className="text-slate-500 font-semibold">Contrast</span>
                             <span className="text-pink-700 font-bold font-mono">{activePage.contrast}</span>
                           </div>
-                          <input
-                            type="range"
-                            min="-50"
-                            max="50"
-                            value={activePage.contrast}
-                            onChange={(e) => updateActivePage({ contrast: parseInt(e.target.value) })}
-                            className="w-full h-1.5 appearance-none rounded-full bg-slate-100 border border-slate-205 accent-pink-600 cursor-pointer focus:outline-none"
-                          />
+                          <input type="range" min="-50" max="50" value={activePage.contrast} onChange={(e) => updateActivePage({ contrast: parseInt(e.target.value) })} className="w-full h-1.5 appearance-none rounded-full bg-slate-100 border border-slate-205 accent-pink-600 cursor-pointer focus:outline-none" />
                         </div>
                       </div>
                     </div>
@@ -1166,111 +1042,213 @@ export default function PreviewPage() {
             {/* ─── MOBILE ONLY: BOTTOM DOCK TOOLBAR ────────────────────────────── */}
             {activePage && (
               <footer className="md:hidden flex justify-around bg-white border-t border-slate-200 py-3.5 px-2 select-none shrink-0 z-20 shadow-[0_-8px_30px_rgb(0,0,0,0.06)]">
-                {/* Crop toggle */}
-                <button
-                  onClick={() => {
-                    setIsCropping((v) => !v);
-                    setActiveSheet("none");
-                  }}
-                  className={`flex flex-col items-center gap-1 text-[10px] font-bold w-14
-                    ${isCropping ? "text-pink-600" : "text-slate-500 hover:text-slate-800"}`}
-                >
-                  <span className="text-base">✂️</span>
-                  <span>Crop</span>
+                <button onClick={() => { setIsCropping((v) => !v); setActiveSheet("none"); }} className={`flex flex-col items-center gap-1 text-[10px] font-bold w-14 ${isCropping ? "text-pink-600" : "text-slate-500 hover:text-slate-800"}`}>
+                  <span className="text-base">✂️</span><span>Crop</span>
                 </button>
-
-                {/* Filters Sheet trigger */}
-                <button
-                  onClick={() => {
-                    setActiveSheet(activeSheet === "filters" ? "none" : "filters");
-                    setIsCropping(false);
-                  }}
-                  className={`flex flex-col items-center gap-1 text-[10px] font-bold transition-colors w-14
-                    ${activeSheet === "filters" && !isCropping ? "text-pink-600" : "text-slate-500 hover:text-slate-800"}`}
-                >
-                  <span className="text-base">🎨</span>
-                  <span>Filters</span>
+                <button onClick={() => { setActiveSheet(activeSheet === "filters" ? "none" : "filters"); setIsCropping(false); }} className={`flex flex-col items-center gap-1 text-[10px] font-bold transition-colors w-14 ${activeSheet === "filters" && !isCropping ? "text-pink-600" : "text-slate-500 hover:text-slate-800"}`}>
+                  <span className="text-base">🎨</span><span>Filters</span>
                 </button>
-
-                {/* Adjust Sheet trigger */}
-                <button
-                  onClick={() => {
-                    setActiveSheet(activeSheet === "adjust" ? "none" : "adjust");
-                    setIsCropping(false);
-                  }}
-                  className={`flex flex-col items-center gap-1 text-[10px] font-bold transition-colors w-14
-                    ${activeSheet === "adjust" && !isCropping ? "text-pink-600" : "text-slate-500 hover:text-slate-800"}`}
-                >
-                  <span className="text-base">⚙️</span>
-                  <span>Adjust</span>
+                <button onClick={() => { setActiveSheet(activeSheet === "adjust" ? "none" : "adjust"); setIsCropping(false); }} className={`flex flex-col items-center gap-1 text-[10px] font-bold transition-colors w-14 ${activeSheet === "adjust" && !isCropping ? "text-pink-600" : "text-slate-500 hover:text-slate-800"}`}>
+                  <span className="text-base">⚙️</span><span>Adjust</span>
                 </button>
-
-                {/* Rotate active page instantly */}
-                <button
-                  onClick={handleRotateRight}
-                  className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-800 w-14"
-                >
-                  <span className="text-base">🔄</span>
-                  <span>Rotate</span>
+                <button onClick={handleRotateRight} className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-800 w-14">
+                  <span className="text-base">🔄</span><span>Rotate</span>
                 </button>
-
-                {/* Recapture active page */}
-                <button
-                  onClick={() => {
-                    setCaptureMode("recapture");
-                    openCamera();
-                  }}
-                  className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-800 w-14 transition-colors"
-                >
-                  <span className="text-base">📷</span>
-                  <span>Recapture</span>
+                <button onClick={() => { setCaptureMode("recapture"); openCamera(); }} className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-800 w-14 transition-colors">
+                  <span className="text-base">📷</span><span>Recapture</span>
                 </button>
               </footer>
             )}
           </div>
-        </div>
-      )}
 
-      {/* Sticky Bottom Desktop Action Bar (Hidden on Mobile) */}
-      {pages.length > 0 && (
-        <div className="hidden md:block border-t border-slate-200 bg-white/90 backdrop-blur-sm px-4 py-4 flex-shrink-0 z-10 shadow-lg">
-          <div className="mx-auto max-w-6xl flex flex-wrap items-center justify-between gap-4">
-            <div className="text-sm font-semibold text-slate-655">
-              {pages.length} page{pages.length === 1 ? "" : "s"} selected
-            </div>
+          {/* ─── DESKTOP RIGHT PANEL: Tools Sidebar (Hidden on mobile) ────────── */}
+          {activePage && (
+            <div className="hidden md:flex flex-col bg-white border-l border-slate-200/80 flex-shrink-0 overflow-hidden" style={{width: '264px'}}>
 
-            <div>
-              <Link
-                href="/convert"
-                className="inline-flex rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-5 py-3 text-sm font-medium text-slate-700 transition shadow-sm"
-              >
-                🔄 Rescan
-              </Link>
-            </div>
+              {/* ── TOP: Header + Download PDF always visible ──────────────────── */}
+              <div className="flex-shrink-0 border-b border-slate-100">
+                {/* Page info header */}
+                <div className="px-4 py-3 bg-gradient-to-r from-white to-slate-50 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Tools</span>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-400">Page {activeIdx + 1} / {pages.length}</span>
+                </div>
 
-            <div>
-              <button
-                id="generate-pdf-btn"
-                disabled={isGenerating}
-                onClick={handleDownloadPdf}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-600 to-indigo-700 hover:from-pink-500 hover:to-indigo-600 disabled:opacity-40 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:shadow-lg disabled:cursor-not-allowed"
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                    Generating PDF...
-                  </>
-                ) : (
-                  <>
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                    Download PDF
-                  </>
-                )}
-              </button>
+                {/* Primary Actions — always visible */}
+                <div className="px-3 pb-3 space-y-2">
+                  <button
+                    id="generate-pdf-btn"
+                    disabled={isGenerating}
+                    onClick={handleDownloadPdf}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-pink-500/25 transition-all hover:shadow-xl hover:shadow-pink-500/30 hover:-translate-y-0.5"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white flex-shrink-0" />
+                        Generating PDF…
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                        Download PDF
+                      </>
+                    )}
+                  </button>
+                  <Link
+                    href="/convert"
+                    className="flex items-center justify-center gap-2 w-full rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-4 py-2 text-xs font-bold text-slate-500 transition-all hover:shadow-sm hover:border-slate-300 hover:text-slate-700"
+                  >
+                    <svg className="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                    Rescan Document
+                  </Link>
+                </div>
+              </div>
+
+              {/* ── MIDDLE: Scrollable Tools ─────────────────────────────────── */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-3 space-y-4">
+
+                  {/* Recapture + Reset — first thing user sees in tools */}
+                  <div className="space-y-1.5">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Page Actions</p>
+                    <button
+                      onClick={() => { setCaptureMode("recapture"); openCamera(); }}
+                      className="group w-full flex items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 px-3 py-2.5 text-xs font-bold text-slate-600 transition-all hover:shadow-sm"
+                    >
+                      <svg className="h-4 w-4 text-slate-400 group-hover:text-indigo-500 transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><circle cx="12" cy="13" r="3" /></svg>
+                      Recapture This Page
+                    </button>
+                    <button
+                      onClick={resetEdits}
+                      disabled={isCropping}
+                      className="group w-full flex items-center gap-2.5 rounded-xl border border-red-100 bg-red-50/80 hover:bg-red-100 px-3 py-2.5 text-xs font-bold text-red-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-sm"
+                    >
+                      <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                      Reset All Edits
+                    </button>
+                  </div>
+
+                  <div className="border-t border-slate-100" />
+
+                  {/* Transform */}
+                  <div>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Transform</p>
+                    <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                      <button
+                        onClick={handleRotateLeft}
+                        disabled={isCropping}
+                        className="group flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 px-2 py-2.5 text-xs font-semibold text-slate-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-sm"
+                      >
+                        <svg className="h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        Rotate L
+                      </button>
+                      <button
+                        onClick={handleRotateRight}
+                        disabled={isCropping}
+                        className="group flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 px-2 py-2.5 text-xs font-semibold text-slate-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-sm"
+                      >
+                        <svg className="h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} style={{transform: 'scaleX(-1)'}}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        Rotate R
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => { setIsCropping((v) => !v); setActivePanel("none"); }}
+                      className={`w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all
+                        ${isCropping
+                          ? 'bg-pink-600 text-white shadow-md shadow-pink-200'
+                          : 'border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:border-slate-300 hover:shadow-sm'
+                        }`}
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 2v14a2 2 0 002 2h14M18 22V8a2 2 0 00-2-2H2" /></svg>
+                      {isCropping ? 'Cropping Active…' : 'Crop & Perspective'}
+                    </button>
+                  </div>
+
+                  <div className="border-t border-slate-100" />
+
+                  {/* Scan Filters */}
+                  <div>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Scan Filter</p>
+                    <div className="space-y-1">
+                      {FILTERS.map((f) => (
+                        <button
+                          key={f.id}
+                          onClick={() => handleFilterSelect(f.id)}
+                          disabled={isCropping}
+                          className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed
+                            ${activePage.filter === f.id
+                              ? 'bg-gradient-to-r from-pink-600 to-indigo-600 text-white shadow-md'
+                              : 'border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:border-slate-300'
+                            }`}
+                        >
+                          <span className="text-sm flex-shrink-0">{f.icon}</span>
+                          <div className="text-left flex-1 min-w-0">
+                            <div className="font-bold truncate">{f.label}</div>
+                            <div className={`text-[9px] truncate ${activePage.filter === f.id ? 'text-white/75' : 'text-slate-400'}`}>{f.description}</div>
+                          </div>
+                          {activePage.filter === f.id && (
+                            <svg className="h-3 w-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    {activePage.filter !== "original" && !isCropping && (
+                      <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                            {activePage.filter === "whiteboard" ? "Threshold" : "Intensity"}
+                          </span>
+                          <span className="text-pink-600 font-bold font-mono text-[11px]">{activePage.filterIntensity}%</span>
+                        </div>
+                        <input type="range" min="0" max="100" value={activePage.filterIntensity}
+                          onChange={(e) => handleIntensityChange(parseInt(e.target.value))}
+                          className="w-full h-1.5 appearance-none rounded-full bg-slate-200 accent-pink-600 cursor-pointer focus:outline-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border-t border-slate-100" />
+
+                  {/* Adjustments */}
+                  <div>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Adjustments</p>
+                    <div className="space-y-2">
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-slate-600 font-semibold">Brightness</span>
+                          <span className="text-pink-600 font-bold font-mono text-[11px]">{activePage.brightness > 0 ? `+${activePage.brightness}` : activePage.brightness}</span>
+                        </div>
+                        <input type="range" min="-50" max="50" value={activePage.brightness}
+                          onChange={(e) => updateActivePage({ brightness: parseInt(e.target.value) })}
+                          disabled={isCropping}
+                          className="w-full h-1.5 appearance-none rounded-full bg-slate-200 accent-pink-600 cursor-pointer focus:outline-none disabled:opacity-40"
+                        />
+                      </div>
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-slate-600 font-semibold">Contrast</span>
+                          <span className="text-pink-600 font-bold font-mono text-[11px]">{activePage.contrast > 0 ? `+${activePage.contrast}` : activePage.contrast}</span>
+                        </div>
+                        <input type="range" min="-50" max="50" value={activePage.contrast}
+                          onChange={(e) => updateActivePage({ contrast: parseInt(e.target.value) })}
+                          disabled={isCropping}
+                          className="w-full h-1.5 appearance-none rounded-full bg-slate-200 accent-pink-600 cursor-pointer focus:outline-none disabled:opacity-40"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom spacer */}
+                  <div className="h-2" />
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

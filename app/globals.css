@@ -11,8 +11,10 @@
     box-sizing: border-box;
   }
 
-  html {
+  html, body {
     @apply bg-gray-950 text-gray-100;
+    overflow: hidden;
+    height: 100%;
   }
 
   /* Smooth scrollbar */
