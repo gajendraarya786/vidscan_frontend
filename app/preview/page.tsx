@@ -204,9 +204,26 @@ export default function PreviewPage() {
     }
     setIsLoaded(true);
 
+    // Lock scrolling on document/body for preview editor page
+    const origOverflow = document.body.style.overflow;
+    const origHeight = document.body.style.height;
+    document.body.style.overflow = "hidden";
+    document.body.style.height = "100%";
+    if (document.documentElement) {
+      document.documentElement.style.overflow = "hidden";
+      document.documentElement.style.height = "100%";
+    }
+
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      // Restore scrolling when leaving preview editor
+      document.body.style.overflow = origOverflow;
+      document.body.style.height = origHeight;
+      if (document.documentElement) {
+        document.documentElement.style.overflow = "";
+        document.documentElement.style.height = "";
       }
     };
   }, []);
