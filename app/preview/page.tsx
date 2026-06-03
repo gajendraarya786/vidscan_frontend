@@ -11,6 +11,7 @@ type ScanFilter = "original" | "magic" | "grayscale" | "whiteboard" | "autocolor
 
 interface EditorPage {
   id: string;
+  rawImage: string;      // The absolute original uncropped image captured from camera/uploaded
   originalImage: string; // Raw base64 source (used for filters)
   image: string;         // Active filtered base64 source
   rotation: number;      // 0, 90, 180, 270
@@ -462,6 +463,7 @@ export default function PreviewPage() {
     if (stored.length > 0) {
       const mapped = stored.map((p: ScannedPageItem, idx: number) => ({
         id: `page-${idx}-${Math.random().toString(36).substring(4)}`,
+        rawImage: p.image,
         originalImage: p.image,
         image: p.image,
         rotation: 0,
@@ -626,6 +628,7 @@ export default function PreviewPage() {
       const b64 = (reader.result as string).split(",")[1];
       const newPage: EditorPage = {
         id: `page-added-${Date.now()}-${Math.random().toString(36).substring(4)}`,
+        rawImage: b64,
         originalImage: b64,
         image: b64,
         rotation: 0,
@@ -738,6 +741,7 @@ export default function PreviewPage() {
           idx === activeIdx
             ? {
               ...p,
+              rawImage: b64,
               originalImage: b64,
               image: filteredB64,
               crop: undefined,
@@ -754,6 +758,7 @@ export default function PreviewPage() {
     } else {
       const newPage: EditorPage = {
         id: `page-added-${Date.now()}-${Math.random().toString(36).substring(4)}`,
+        rawImage: b64,
         originalImage: b64,
         image: b64,
         rotation: 0,
@@ -825,7 +830,7 @@ export default function PreviewPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          image: activePage.originalImage,
+          image: activePage.rawImage,
           tl: crop.tl,
           tr: crop.tr,
           br: crop.br,
@@ -862,8 +867,9 @@ export default function PreviewPage() {
   const resetEdits = async () => {
     if (!activePage) return;
     try {
-      const original = activePage.originalImage;
+      const original = activePage.rawImage;
       updateActivePage({
+        originalImage: original,
         image: original,
         rotation: 0,
         filter: "original",
@@ -1134,7 +1140,7 @@ export default function PreviewPage() {
                     {isCropping ? (
                       <div className="w-full h-full relative z-20">
                         <PerspectiveCropOverlay
-                          imageUrl={`data:image/jpeg;base64,${activePage.originalImage}`}
+                          imageUrl={`data:image/jpeg;base64,${activePage.rawImage}`}
                           imageAlt={`Page ${activeIdx + 1} Editor`}
                           initialPoints={activePage.crop}
                           onConfirm={handleCropConfirm}
