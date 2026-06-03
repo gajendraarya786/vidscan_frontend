@@ -31,7 +31,7 @@ const FILTERS: { id: ScanFilter; label: string; description: string; icon: strin
   { id: "autocolor", label: "Auto Color", description: "Clean natural scan", icon: "🪄" },
 ];
 
-type ActivePanel = "none" | "filters" | "adjust";
+
 
 // ─── Canvas Filtering Helper ──────────────────────────────────────────────────
 
@@ -162,7 +162,7 @@ export default function PreviewPage() {
   // Editor states
   const [isCropping, setIsCropping] = useState(true);
   const [isCropApplying, setIsCropApplying] = useState(false);
-  const [activePanel, setActivePanel] = useState<ActivePanel>("none");
+
   const [activeSheet, setActiveSheet] = useState<"none" | "thumbnails" | "filters" | "adjust">("none");
 
   // Drag & Drop thumbnails
@@ -219,7 +219,7 @@ export default function PreviewPage() {
     } else {
       setIsCropping(true);
     }
-    setActivePanel("none");
+
     setActiveSheet("none");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdx]);
@@ -873,7 +873,7 @@ export default function PreviewPage() {
 
                     {/* Crop toggle */}
                     <button
-                      onClick={() => { setIsCropping((v) => !v); setActivePanel("none"); }}
+                      onClick={() => { setIsCropping((v) => !v); }}
                       title={isCropping ? 'Exit Crop Mode' : 'Crop & Perspective'}
                       className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all
                         ${isCropping
@@ -1156,7 +1156,7 @@ export default function PreviewPage() {
                       </button>
                     </div>
                     <button
-                      onClick={() => { setIsCropping((v) => !v); setActivePanel("none"); }}
+                      onClick={() => { setIsCropping((v) => !v); }}
                       className={`w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all
                         ${isCropping
                           ? 'bg-pink-600 text-white shadow-md shadow-pink-200'
