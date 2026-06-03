@@ -171,12 +171,12 @@ export default function PerspectiveCropOverlay({
   const activePt = activeCorner ? points[activeCorner] : null;
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full select-none touch-none">
+    <div className="relative w-full h-full flex flex-col items-center justify-center select-none touch-none">
       
       {/* ─── Main Stage Crop Container ────────────────────────────────────────── */}
       <div
         ref={containerRef}
-        className="relative max-h-[60vh] max-w-full overflow-hidden rounded-xl border border-slate-200 shadow-xl bg-white mx-auto touch-none"
+        className="relative max-h-[48vh] md:max-h-[60vh] max-w-full overflow-hidden rounded-xl border border-slate-205 shadow-xl bg-white mx-auto touch-none"
         style={{ userSelect: "none", touchAction: "none", width: "fit-content", height: "fit-content" }}
       >
         {/* Document Image */}
@@ -186,7 +186,7 @@ export default function PerspectiveCropOverlay({
           alt={imageAlt}
           draggable={false}
           onLoad={() => setImageLoaded(true)}
-          className="block max-h-[60vh] max-w-full w-auto h-auto pointer-events-none"
+          className="block max-h-[48vh] md:max-h-[60vh] max-w-full w-auto h-auto pointer-events-none"
         />
 
         {imageLoaded && (
@@ -281,22 +281,36 @@ export default function PerspectiveCropOverlay({
         )}
       </div>
 
-      {/* Action Buttons Below the Image Container (never overlaps) */}
+      {/* Floating Action Buttons (Separate Cancel 'X' and Confirm 'Tick') */}
       {imageLoaded && (
-        <div className="flex items-center gap-4 select-none mt-2 pb-2">
+        <>
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="px-5 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs shadow-sm active:scale-95 transition-all"
+              className="absolute bottom-3 left-4 md:bottom-5 md:left-6 z-30 flex items-center justify-center w-10 h-10 rounded-full bg-slate-900/85 hover:bg-slate-800 border border-white/10 text-white shadow-lg backdrop-blur-sm active:scale-95 transition-all"
+              aria-label="Cancel Crop"
             >
-              Skip Crop
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={3}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-5 w-5"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
             </button>
           )}
+
           <button
             type="button"
             onClick={() => onConfirm({ ...points })}
-            className="w-11 h-11 rounded-full bg-gradient-to-r from-pink-600 to-indigo-700 hover:from-pink-500 hover:to-indigo-600 text-white shadow-lg active:scale-95 transition-all flex items-center justify-center border border-pink-500/20"
+            className="absolute bottom-3 right-4 md:bottom-5 md:right-6 z-30 flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-pink-600 to-indigo-700 hover:from-pink-500 hover:to-indigo-600 text-white shadow-[0_4px_14px_rgba(219,39,119,0.35)] active:scale-95 transition-all"
             aria-label="Confirm Crop"
           >
             <svg
@@ -312,7 +326,7 @@ export default function PerspectiveCropOverlay({
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </button>
-        </div>
+        </>
       )}
     </div>
   );

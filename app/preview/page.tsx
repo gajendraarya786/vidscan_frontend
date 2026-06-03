@@ -1092,7 +1092,7 @@ export default function PreviewPage() {
                   )}
 
                   {/* Main canvas viewport */}
-                  <div className="flex-1 flex items-center justify-center relative overflow-hidden p-6 pb-20">
+                  <div className="flex-1 flex items-center justify-center relative overflow-hidden p-6 pb-6 md:pb-20">
                     {/* Applying crop overlay */}
                     {isCropApplying && (
                       <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/80 backdrop-blur-sm">
