@@ -14,6 +14,8 @@ import AdUnit from "@/components/AdUnit";
 import ProgressBar from "@/components/ProgressBar";
 import { pageStore } from "@/lib/pageStore";
 import type { ScannedPageItem } from "@/lib/pageStore";
+import { supabase } from "@/lib/supabaseClient";
+
 
 /* ─── constants ─── */
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -200,15 +202,24 @@ export default function ConvertPage() {
     setPdfUrl("");
     setPageCount(null);
 
-    const form = new FormData();
-    form.append("file", fileToUse);
-
-
     try {
-      const pages = await new Promise<ScannedPageItem[]>((resolve, reject) => {
+      const fileExt = fileToUse.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(4)}.${fileExt}`;
+      const filePath = `uploads/${fileName}`;
+
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error("Supabase is not configured. Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.");
+      }
+
+      // Step 1: Upload directly to Supabase Storage with progress tracking
+      await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open("POST", `${API_URL}/preview-frames`);
-        xhr.responseType = "json";
+        xhr.open("POST", `${supabaseUrl}/storage/v1/object/vidscan/${filePath}`);
+        xhr.setRequestHeader("Authorization", `Bearer ${supabaseAnonKey}`);
+        xhr.setRequestHeader("apikey", supabaseAnonKey);
 
         xhr.upload.onprogress = (ev) => {
           if (ev.lengthComputable) {
@@ -216,35 +227,108 @@ export default function ConvertPage() {
           }
         };
 
-        xhr.onreadystatechange = () => {
-          if (xhr.readyState === 3) {
-            setConvState("processing");
-            setProgressLabel("Processing…");
-            setProgress(85);
-          }
-        };
-
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
-            setProgress(100);
-            resolve(xhr.response as ScannedPageItem[]);
+            resolve();
           } else {
-            const errorObj = xhr.response;
-            const msg = errorObj && typeof errorObj === "object" && "detail" in errorObj
-              ? String(errorObj.detail)
-              : `Server error ${xhr.status}`;
-            reject(new Error(msg));
+            reject(new Error(`Storage upload failed: ${xhr.statusText} (${xhr.status})`));
           }
         };
 
-        xhr.onerror = () =>
-          reject(new Error("Network error. Is the backend running?"));
+        xhr.onerror = () => reject(new Error("Network error during file upload."));
+        
+        const form = new FormData();
+        form.append("file", fileToUse);
         xhr.send(form);
       });
 
-      // Store pages in the in-memory store (no sessionStorage quota limit)
+      // Step 2: Create a job row in Supabase 'jobs' table
+      setProgress(75);
+      setProgressLabel("Registering job…");
+
+      const videoUrl = `${supabaseUrl}/storage/v1/object/public/vidscan/${filePath}`;
+
+      const { data: job, error: dbError } = await supabase
+        .from("jobs")
+        .insert({
+          video_url: videoUrl,
+          status: "pending",
+        })
+        .select()
+        .single();
+
+      if (dbError || !job) {
+        throw new Error(dbError?.message || "Failed to create database record for this job.");
+      }
+
+      const jobId = job.id;
+
+      // Step 3: Trigger the FastAPI background processing endpoint
+      setProgress(80);
+      setProgressLabel("Initiating processing…");
+
+      const triggerRes = await fetch(`${API_URL}/jobs/${jobId}/process`, {
+        method: "POST",
+      });
+
+      if (!triggerRes.ok) {
+        const errObj = await triggerRes.json().catch(() => ({}));
+        throw new Error(errObj.detail || `Failed to start processing job (${triggerRes.status})`);
+      }
+
+      // Step 4: Poll status in Supabase Database until completion
+      setConvState("processing");
+      setProgressLabel("Processing…");
+      setProgress(85);
+
+      const maxPollAttempts = 120; // 5 minutes max
+      let attempts = 0;
+      let pages: ScannedPageItem[] | null = null;
+
+      while (attempts < maxPollAttempts) {
+        // Sleep for 2.5 seconds
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        attempts++;
+
+        const { data: currentJob, error: pollError } = await supabase
+          .from("jobs")
+          .select("status, pages_json_url, error_message")
+          .eq("id", jobId)
+          .single();
+
+        if (pollError) {
+          console.error("Polling error:", pollError);
+          continue;
+        }
+
+        if (currentJob.status === "completed") {
+          setProgress(95);
+          setProgressLabel("Loading results…");
+          
+          if (!currentJob.pages_json_url) {
+            throw new Error("Job completed but no pages JSON URL was generated.");
+          }
+
+          // Fetch the public pages.json
+          const jsonRes = await fetch(currentJob.pages_json_url);
+          if (!jsonRes.ok) {
+            throw new Error(`Failed to fetch pages JSON data from storage (${jsonRes.status})`);
+          }
+          pages = (await jsonRes.json()) as ScannedPageItem[];
+          break;
+        }
+
+        if (currentJob.status === "failed") {
+          throw new Error(currentJob.error_message || "Video processing failed on server.");
+        }
+      }
+
+      if (!pages) {
+        throw new Error("Job timed out. The server is taking too long to process this video.");
+      }
+
+      setProgress(100);
       pageStore.set(pages);
-      // Reset state and redirect
       setConvState("idle");
       router.push("/preview");
     } catch (e: unknown) {
