@@ -245,6 +245,7 @@ export default function LandingPageClient() {
             ref={fileInputRef}
             type="file"
             accept="video/*"
+            multiple
             className="hidden"
             onChange={handleFileChange}
           />

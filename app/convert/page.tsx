@@ -442,6 +442,7 @@ export default function ConvertPage() {
                   id="file-input"
                   type="file"
                   accept={ACCEPTED_EXT}
+                  multiple
                   className="sr-only"
                   onChange={onFileChange}
                 />

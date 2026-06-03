@@ -7,7 +7,7 @@ import PerspectiveCropOverlay, { type PerspectivePoints } from "@/components/Per
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
-type ScanFilter = "original" | "magic" | "grayscale" | "whiteboard" | "autocolor";
+type ScanFilter = "original" | "magic" | "grayscale" | "whiteboard" | "autocolor" | "docgrayscale" | "adobe_bw" | "sharp_color" | "soft_bw" | "marker" | "vintage";
 
 interface EditorPage {
   id: string;
@@ -26,9 +26,15 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").rep
 const FILTERS: { id: ScanFilter; label: string; description: string; icon: string }[] = [
   { id: "original", label: "Original", description: "No enhancement", icon: "🖼️" },
   { id: "magic", label: "Magic Color", description: "Vibrant scan", icon: "✨" },
-  { id: "grayscale", label: "Grayscale", description: "Smooth gray tones", icon: "🎨" },
-  { id: "whiteboard", label: "Whiteboard", description: "Crisp black & white", icon: "🌓" },
   { id: "autocolor", label: "Auto Color", description: "Clean natural scan", icon: "🪄" },
+  { id: "sharp_color", label: "Sharp Color", description: "Remove shadow & keep ink", icon: "🎨" },
+  { id: "adobe_bw", label: "Adobe B&W", description: "Crisp adaptive B&W", icon: "📰" },
+  { id: "soft_bw", label: "Soft B&W", description: "Faint text clarifier", icon: "✏️" },
+  { id: "docgrayscale", label: "Doc Grayscale", description: "Clean paper & gray text", icon: "📄" },
+  { id: "marker", label: "Marker Boost", description: "Whiteboard & ink pop", icon: "🖍️" },
+  { id: "vintage", label: "Vintage Note", description: "Warm retro look", icon: "📜" },
+  { id: "grayscale", label: "Grayscale", description: "Smooth gray tones", icon: "🖤" },
+  { id: "whiteboard", label: "Whiteboard", description: "Crisp black & white", icon: "🌓" },
 ];
 
 
@@ -74,6 +80,270 @@ function applyCanvasFilter(
           data[i] = (1 - w) * r + w * gray;
           data[i + 1] = (1 - w) * g + w * gray;
           data[i + 2] = (1 - w) * b + w * gray;
+        }
+      } else if (filter === "sharp_color") {
+        const W = canvas.width;
+        const H = canvas.height;
+        const g = new Uint8Array(W * H);
+        for (let i = 0; i < len; i += 4) {
+          g[i / 4] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        }
+
+        const S = new Uint32Array(W * H);
+        for (let y = 0; y < H; y++) {
+          let rowSum = 0;
+          for (let x = 0; x < W; x++) {
+            const idx = y * W + x;
+            rowSum += g[idx];
+            if (y === 0) {
+              S[idx] = rowSum;
+            } else {
+              S[idx] = S[(y - 1) * W + x] + rowSum;
+            }
+          }
+        }
+
+        const s = Math.floor(W / 12);
+        const s2 = Math.floor(s / 2);
+        const gain = 1.0 + (intensity / 100) * 0.4;
+
+        for (let y = 0; y < H; y++) {
+          const y1 = Math.max(0, y - s2);
+          const y2 = Math.min(H - 1, y + s2);
+          for (let x = 0; x < W; x++) {
+            const x1 = Math.max(0, x - s2);
+            const x2 = Math.min(W - 1, x + s2);
+            
+            const idx = y * W + x;
+            const br = y2 * W + x2;
+            const tr = (y1 - 1) * W + x2;
+            const bl = y2 * W + (x1 - 1);
+            const tl = (y1 - 1) * W + (x1 - 1);
+            
+            let sum = S[br];
+            if (y1 > 0) sum -= S[tr];
+            if (x1 > 0) sum -= S[bl];
+            if (y1 > 0 && x1 > 0) sum += S[tl];
+            
+            const count = (x2 - x1 + 1) * (y2 - y1 + 1);
+            const avg = sum / count;
+            
+            const pixelIdx = idx * 4;
+            const r = data[pixelIdx];
+            const g_val = data[pixelIdx + 1];
+            const b = data[pixelIdx + 2];
+            
+            const scale = 255 / (avg + 1);
+            
+            let nr = r * scale * gain;
+            let ng = g_val * scale * gain;
+            let nb = b * scale * gain;
+            
+            nr = Math.max(0, Math.min(255, nr));
+            ng = Math.max(0, Math.min(255, ng));
+            nb = Math.max(0, Math.min(255, nb));
+            
+            data[pixelIdx] = (1 - w) * r + w * nr;
+            data[pixelIdx + 1] = (1 - w) * g_val + w * ng;
+            data[pixelIdx + 2] = (1 - w) * b + w * nb;
+          }
+        }
+      } else if (filter === "soft_bw") {
+        const W = canvas.width;
+        const H = canvas.height;
+        const g = new Uint8Array(W * H);
+        for (let i = 0; i < len; i += 4) {
+          g[i / 4] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        }
+
+        const S = new Uint32Array(W * H);
+        for (let y = 0; y < H; y++) {
+          let rowSum = 0;
+          for (let x = 0; x < W; x++) {
+            const idx = y * W + x;
+            rowSum += g[idx];
+            if (y === 0) {
+              S[idx] = rowSum;
+            } else {
+              S[idx] = S[(y - 1) * W + x] + rowSum;
+            }
+          }
+        }
+
+        const s = Math.floor(W / 12);
+        const s2 = Math.floor(s / 2);
+        const t = 0.05 + (intensity / 100) * 0.22;
+
+        for (let y = 0; y < H; y++) {
+          const y1 = Math.max(0, y - s2);
+          const y2 = Math.min(H - 1, y + s2);
+          for (let x = 0; x < W; x++) {
+            const x1 = Math.max(0, x - s2);
+            const x2 = Math.min(W - 1, x + s2);
+            
+            const idx = y * W + x;
+            const br = y2 * W + x2;
+            const tr = (y1 - 1) * W + x2;
+            const bl = y2 * W + (x1 - 1);
+            const tl = (y1 - 1) * W + (x1 - 1);
+            
+            let sum = S[br];
+            if (y1 > 0) sum -= S[tr];
+            if (x1 > 0) sum -= S[bl];
+            if (y1 > 0 && x1 > 0) sum += S[tl];
+            
+            const count = (x2 - x1 + 1) * (y2 - y1 + 1);
+            const avg = sum / count;
+            const target = avg * (1.0 - t);
+            
+            let value = 255;
+            if (g[idx] < target) {
+              value = 0;
+            } else if (g[idx] > avg) {
+              value = 255;
+            } else {
+              const diff = avg - target;
+              value = ((g[idx] - target) / (diff + 1)) * 255;
+            }
+            
+            const pixelIdx = idx * 4;
+            const r = data[pixelIdx];
+            const g_val = data[pixelIdx + 1];
+            const b = data[pixelIdx + 2];
+            
+            data[pixelIdx] = (1 - w) * r + w * value;
+            data[pixelIdx + 1] = (1 - w) * g_val + w * value;
+            data[pixelIdx + 2] = (1 - w) * b + w * value;
+          }
+        }
+      } else if (filter === "marker") {
+        const contrastFactor = 1.35;
+        const brightnessOffset = 25;
+
+        for (let i = 0; i < len; i += 4) {
+          const r = data[i];
+          const g_val = data[i + 1];
+          const b = data[i + 2];
+
+          const maxVal = Math.max(r, g_val, b);
+          const minVal = Math.min(r, g_val, b);
+          const sat = maxVal - minVal;
+
+          if (sat < 35 && maxVal > 110) {
+            const gray = 0.299 * r + 0.587 * g_val + 0.114 * b;
+            let ng = (gray - 128) * contrastFactor + 128 + brightnessOffset + 15;
+            ng = Math.max(0, Math.min(255, ng));
+            
+            data[i] = (1 - w) * r + w * ng;
+            data[i + 1] = (1 - w) * g_val + w * ng;
+            data[i + 2] = (1 - w) * b + w * ng;
+          } else {
+            const gray = 0.299 * r + 0.587 * g_val + 0.114 * b;
+            let rs = gray + (r - gray) * 1.5;
+            let gs = gray + (g_val - gray) * 1.5;
+            let bs = gray + (b - gray) * 1.5;
+
+            rs = (rs - 128) * contrastFactor + 128 + brightnessOffset;
+            gs = (gs - 128) * contrastFactor + 128 + brightnessOffset;
+            bs = (bs - 128) * contrastFactor + 128 + brightnessOffset;
+
+            data[i] = Math.max(0, Math.min(255, (1 - w) * r + w * rs));
+            data[i + 1] = Math.max(0, Math.min(255, (1 - w) * g_val + w * gs));
+            data[i + 2] = Math.max(0, Math.min(255, (1 - w) * b + w * bs));
+          }
+        }
+      } else if (filter === "vintage") {
+        for (let i = 0; i < len; i += 4) {
+          const r = data[i];
+          const g_val = data[i + 1];
+          const b = data[i + 2];
+
+          const tr = (r * 0.393) + (g_val * 0.769) + (b * 0.189);
+          const tg = (r * 0.349) + (g_val * 0.686) + (b * 0.168);
+          const tb = (r * 0.272) + (g_val * 0.534) + (b * 0.131);
+
+          const cr = Math.max(0, Math.min(255, (tr - 128) * 1.1 + 128 + 10));
+          const cg = Math.max(0, Math.min(255, (tg - 128) * 1.1 + 128 + 5));
+          const cb = Math.max(0, Math.min(255, (tb - 128) * 1.1 + 128));
+
+          data[i] = (1 - w) * r + w * cr;
+          data[i + 1] = (1 - w) * g_val + w * cg;
+          data[i + 2] = (1 - w) * b + w * cb;
+        }
+      } else if (filter === "docgrayscale") {
+        const contrastFactor = 1.35;
+        const brightnessOffset = 25;
+
+        for (let i = 0; i < len; i += 4) {
+          const r = data[i];
+          const g_val = data[i + 1];
+          const b = data[i + 2];
+          const gray = 0.299 * r + 0.587 * g_val + 0.114 * b;
+
+          // Enhancing grayscale contrast and brightness
+          let dg = (gray - 128) * contrastFactor + 128 + brightnessOffset;
+          dg = Math.max(0, Math.min(255, dg));
+
+          data[i] = (1 - w) * r + w * dg;
+          data[i + 1] = (1 - w) * g_val + w * dg;
+          data[i + 2] = (1 - w) * b + w * dg;
+        }
+      } else if (filter === "adobe_bw") {
+        const W = canvas.width;
+        const H = canvas.height;
+        const g = new Uint8Array(W * H);
+        for (let i = 0; i < len; i += 4) {
+          g[i / 4] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        }
+
+        const S = new Uint32Array(W * H);
+        for (let y = 0; y < H; y++) {
+          let rowSum = 0;
+          for (let x = 0; x < W; x++) {
+            const idx = y * W + x;
+            rowSum += g[idx];
+            if (y === 0) {
+              S[idx] = rowSum;
+            } else {
+              S[idx] = S[(y - 1) * W + x] + rowSum;
+            }
+          }
+        }
+
+        const s = Math.floor(W / 8); // Window size
+        const s2 = Math.floor(s / 2);
+        // Map intensity 0..100 to sensitivity tolerance 2%..30%
+        const t = 0.02 + (intensity / 100) * 0.28;
+
+        for (let y = 0; y < H; y++) {
+          const y1 = Math.max(0, y - s2);
+          const y2 = Math.min(H - 1, y + s2);
+          for (let x = 0; x < W; x++) {
+            const x1 = Math.max(0, x - s2);
+            const x2 = Math.min(W - 1, x + s2);
+            
+            const idx = y * W + x;
+            const br = y2 * W + x2;
+            const tr = (y1 - 1) * W + x2;
+            const bl = y2 * W + (x1 - 1);
+            const tl = (y1 - 1) * W + (x1 - 1);
+            
+            let sum = S[br];
+            if (y1 > 0) sum -= S[tr];
+            if (x1 > 0) sum -= S[bl];
+            if (y1 > 0 && x1 > 0) sum += S[tl];
+            
+            const count = (x2 - x1 + 1) * (y2 - y1 + 1);
+            const avg = sum / count;
+            
+            // Adaptive threshold
+            const value = g[idx] < avg * (1.0 - t) ? 0 : 255;
+            
+            const pixelIdx = idx * 4;
+            data[pixelIdx] = value;
+            data[pixelIdx + 1] = value;
+            data[pixelIdx + 2] = value;
+          }
         }
       } else if (filter === "whiteboard") {
         let totalLuminance = 0;
@@ -510,7 +780,12 @@ export default function PreviewPage() {
   const handleFilterSelect = async (filterType: ScanFilter) => {
     if (!activePage) return;
     try {
-      const defaultIntensity = filterType === "whiteboard" ? 50 : 100;
+      const defaultIntensity = (
+        filterType === "whiteboard" ||
+        filterType === "adobe_bw" ||
+        filterType === "soft_bw" ||
+        filterType === "sharp_color"
+      ) ? 50 : 100;
       const filtered = await applyCanvasFilter(activePage.originalImage, filterType, defaultIntensity);
       const cleanB64 = filtered.split(",")[1] || filtered;
       updateActivePage({
@@ -551,10 +826,10 @@ export default function PreviewPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           image: activePage.originalImage,
-          crop_x: crop.tl.x,
-          crop_y: crop.tl.y,
-          crop_width: crop.tr.x - crop.tl.x,
-          crop_height: crop.bl.y - crop.tl.y,
+          tl: crop.tl,
+          tr: crop.tr,
+          br: crop.br,
+          bl: crop.bl,
         }),
       });
 
@@ -1008,27 +1283,69 @@ export default function PreviewPage() {
                 <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-250 rounded-t-3xl p-5 pb-8 z-40 animate-in slide-in-from-bottom duration-200 max-h-[85vh] overflow-y-auto shadow-2xl text-slate-800">
                   <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
                   {activeSheet === "filters" && activePage && (
-                    <div className="space-y-4">
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block">Choose Scan Enhancement</span>
-                      <div className="grid grid-cols-5 gap-1.5">
-                        {FILTERS.map((f) => (
-                          <button key={f.id} onClick={() => handleFilterSelect(f.id)}
-                            className={`flex flex-col items-center gap-1.5 py-3.5 px-0.5 rounded-xl text-[10px] font-bold transition-all ${activePage.filter === f.id ? "bg-pink-600 text-white shadow-sm" : "bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900"}`}
-                          >
-                            <span className="text-sm">{f.icon}</span>
-                            <span className="truncate w-full text-center px-0.5">{f.label}</span>
-                          </button>
-                        ))}
+                    <div className="space-y-4 max-h-[60vh] flex flex-col">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block flex-shrink-0">
+                        Choose Scan Enhancement
+                      </span>
+                      <div className="space-y-2 overflow-y-auto flex-1 pb-4">
+                        {FILTERS.map((f) => {
+                          const isActive = activePage.filter === f.id;
+                          const hasIntensity = f.id !== "original";
+                          return (
+                            <div
+                              key={f.id}
+                              className={`group flex flex-col rounded-xl overflow-hidden border transition-all duration-200
+                                ${isActive
+                                  ? 'border-pink-500 shadow-sm bg-white'
+                                  : 'border-slate-150 bg-slate-50 text-slate-650'
+                                }`}
+                            >
+                              {/* Filter click header */}
+                              <div
+                                onClick={() => handleFilterSelect(f.id)}
+                                className={`w-full flex items-center gap-3 px-3.5 py-3 cursor-pointer select-none text-xs font-semibold
+                                  ${isActive
+                                    ? 'bg-gradient-to-r from-pink-600 to-indigo-600 text-white'
+                                    : 'text-slate-700 active:bg-slate-100'
+                                  }`}
+                              >
+                                <span className="text-base flex-shrink-0">{f.icon}</span>
+                                <div className="text-left flex-1 min-w-0">
+                                  <div className="font-bold text-xs">{f.label}</div>
+                                  <div className={`text-[10px] ${isActive ? 'text-white/80' : 'text-slate-450'}`}>
+                                    {f.description}
+                                  </div>
+                                </div>
+                                {isActive && (
+                                  <svg className="h-3.5 w-3.5 flex-shrink-0 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </div>
+
+                              {/* Nested Intensity Dropdown Slider */}
+                              {isActive && hasIntensity && (
+                                <div className="px-4 pb-3.5 pt-2.5 bg-slate-50 border-t border-slate-100 text-slate-800 animate-in slide-in-from-top duration-200">
+                                  <div className="flex justify-between items-center mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                    <span>
+                                      {f.id === "whiteboard" ? "Line Thickness" : "Enhancement Intensity"}
+                                    </span>
+                                    <span className="text-pink-600 font-bold font-mono text-[11px]">{activePage.filterIntensity}%</span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    value={activePage.filterIntensity}
+                                    onChange={(e) => handleIntensityChange(parseInt(e.target.value))}
+                                    className="w-full h-1.5 appearance-none rounded-full bg-slate-200 accent-pink-600 cursor-pointer focus:outline-none"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                      {activePage.filter !== "original" && (
-                        <div className="mt-4 border-t border-slate-100 pt-4">
-                          <div className="flex justify-between items-center text-xs mb-1.5">
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{activePage.filter === "whiteboard" ? "Threshold Level (Line Thickness)" : "Enhancement Intensity"}</span>
-                            <span className="text-pink-600 font-bold font-mono">{activePage.filterIntensity}%</span>
-                          </div>
-                          <input type="range" min="0" max="100" value={activePage.filterIntensity} onChange={(e) => handleIntensityChange(parseInt(e.target.value))} className="w-full h-1.5 appearance-none rounded-full bg-slate-100 border border-slate-200 accent-pink-600 cursor-pointer focus:outline-none" />
-                        </div>
-                      )}
                     </div>
                   )}
                   {activeSheet === "adjust" && activePage && (
@@ -1190,43 +1507,65 @@ export default function PreviewPage() {
                   {/* Scan Filters */}
                   <div>
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Scan Filter</p>
-                    <div className="space-y-1">
-                      {FILTERS.map((f) => (
-                        <button
-                          key={f.id}
-                          onClick={() => handleFilterSelect(f.id)}
-                          disabled={isCropping}
-                          className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed
-                            ${activePage.filter === f.id
-                              ? 'bg-gradient-to-r from-pink-600 to-indigo-600 text-white shadow-md'
-                              : 'border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:border-slate-300'
-                            }`}
-                        >
-                          <span className="text-sm flex-shrink-0">{f.icon}</span>
-                          <div className="text-left flex-1 min-w-0">
-                            <div className="font-bold truncate">{f.label}</div>
-                            <div className={`text-[9px] truncate ${activePage.filter === f.id ? 'text-white/75' : 'text-slate-400'}`}>{f.description}</div>
+                    <div className="space-y-1.5">
+                      {FILTERS.map((f) => {
+                        const isActive = activePage.filter === f.id;
+                        const hasIntensity = f.id !== "original";
+                        return (
+                          <div
+                            key={f.id}
+                            className={`group flex flex-col rounded-xl overflow-hidden border transition-all duration-200
+                              ${isActive
+                                ? 'border-pink-500 shadow-sm'
+                                : 'border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300'
+                              } ${isCropping ? 'opacity-40 pointer-events-none' : ''}`}
+                          >
+                            {/* Filter click header */}
+                            <div
+                              onClick={() => !isCropping && handleFilterSelect(f.id)}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 cursor-pointer select-none text-xs font-semibold
+                                ${isActive
+                                  ? 'bg-gradient-to-r from-pink-600 to-indigo-600 text-white'
+                                  : 'text-slate-600'
+                                }`}
+                            >
+                              <span className="text-sm flex-shrink-0">{f.icon}</span>
+                              <div className="text-left flex-1 min-w-0">
+                                <div className="font-bold truncate">{f.label}</div>
+                                <div className={`text-[9px] truncate ${isActive ? 'text-white/75' : 'text-slate-400'}`}>
+                                  {f.description}
+                                </div>
+                              </div>
+                              {isActive && (
+                                <svg className="h-3 w-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+
+                            {/* Nested Intensity Dropdown Slider */}
+                            {isActive && hasIntensity && (
+                              <div className="px-3 pb-3 pt-2 bg-slate-50 border-t border-slate-100/80 animate-in slide-in-from-top duration-200 text-slate-800">
+                                <div className="flex justify-between items-center mb-1 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                                  <span>
+                                    {f.id === "whiteboard" ? "Threshold" : "Intensity"}
+                                  </span>
+                                  <span className="text-pink-600 font-bold font-mono text-[10px]">{activePage.filterIntensity}%</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={activePage.filterIntensity}
+                                  onChange={(e) => handleIntensityChange(parseInt(e.target.value))}
+                                  className="w-full h-1 appearance-none rounded-full bg-slate-200 accent-pink-600 cursor-pointer focus:outline-none"
+                                />
+                              </div>
+                            )}
                           </div>
-                          {activePage.filter === f.id && (
-                            <svg className="h-3 w-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                          )}
-                        </button>
-                      ))}
+                        );
+                      })}
                     </div>
-                    {activePage.filter !== "original" && !isCropping && (
-                      <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
-                        <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                            {activePage.filter === "whiteboard" ? "Threshold" : "Intensity"}
-                          </span>
-                          <span className="text-pink-600 font-bold font-mono text-[11px]">{activePage.filterIntensity}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" value={activePage.filterIntensity}
-                          onChange={(e) => handleIntensityChange(parseInt(e.target.value))}
-                          className="w-full h-1.5 appearance-none rounded-full bg-slate-200 accent-pink-600 cursor-pointer focus:outline-none"
-                        />
-                      </div>
-                    )}
                   </div>
 
                   <div className="border-t border-slate-100" />
