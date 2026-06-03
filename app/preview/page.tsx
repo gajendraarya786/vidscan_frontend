@@ -942,15 +942,43 @@ export default function PreviewPage() {
       {/* ─── Navbar ──────────────────────────────────────────────────────────── */}
       <nav className="bg-gradient-to-r from-pink-600 to-indigo-700 text-white shadow-lg px-4 py-3 flex-shrink-0 z-10">
         <div className="flex items-center justify-between">
-          <Link href="/convert" className="text-sm text-pink-100 hover:text-white transition flex items-center gap-1.5 font-semibold group">
+          <Link href="/convert" className="text-sm text-pink-100 hover:text-white transition flex items-center gap-1.5 font-semibold group whitespace-nowrap">
             <svg className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             Back to scanner
           </Link>
-          <span className="font-bold text-white text-sm flex items-center gap-2 tracking-tight">
+          <span className="font-bold text-white text-sm hidden md:flex items-center gap-2 tracking-tight">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             VidScan Editor
           </span>
-          <span className="w-32" />
+          <div className="flex items-center justify-end">
+            {pages.length > 0 && (
+              <button
+                onClick={handleDownloadPdf}
+                disabled={isGenerating}
+                className="flex items-center gap-1.5 bg-white hover:bg-slate-100 text-indigo-700 font-extrabold text-[11px] uppercase tracking-wider px-3.5 py-1.5 rounded-full shadow-md active:scale-95 transition-all border border-indigo-100/10"
+              >
+                {isGenerating ? (
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-indigo-700" />
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-3.5 w-3.5 text-indigo-700"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                )}
+                <span>Save PDF</span>
+              </button>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -1608,33 +1636,7 @@ export default function PreviewPage() {
         </div>
       )}
 
-      {/* Floating Action Button (FAB) on Mobile to compile/download PDF */}
-      {pages.length > 0 && !isCropping && (
-        <button
-          onClick={handleDownloadPdf}
-          disabled={isGenerating}
-          className="md:hidden fixed bottom-24 right-5 z-20 flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-r from-pink-600 to-indigo-700 text-white shadow-2xl active:scale-95 transition-all border border-pink-500/20"
-          aria-label="Download compiled PDF"
-        >
-          {isGenerating ? (
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-          ) : (
-            <svg
-              className="h-6 w-6"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-          )}
-        </button>
-      )}
+
 
       {/* Undo deletion toast */}
       {showUndo && (
