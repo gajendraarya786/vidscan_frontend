@@ -102,7 +102,7 @@ export default function ConvertPage() {
     setErrorMsg("");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: 1280, height: 720 },
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       });
       streamRef.current = stream;
@@ -112,9 +112,24 @@ export default function ConvertPage() {
         videoPreviewRef.current.play();
       }
       setRecState("idle");
-    } catch {
-      setErrorMsg("Camera access denied. Please allow camera permissions and try again.");
-      setRecState("idle");
+    } catch (err) {
+      console.error("Failed to open high-res camera, trying fallback:", err);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+        streamRef.current = stream;
+        if (videoPreviewRef.current) {
+          videoPreviewRef.current.srcObject = stream;
+          videoPreviewRef.current.muted = true;
+          videoPreviewRef.current.play();
+        }
+        setRecState("idle");
+      } catch {
+        setErrorMsg("Camera access denied. Please allow camera permissions and try again.");
+        setRecState("idle");
+      }
     }
   };
 

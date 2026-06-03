@@ -365,7 +365,7 @@ export default function PreviewPage() {
     setCameraError("");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       });
       streamRef.current = stream;
@@ -385,7 +385,7 @@ export default function PreviewPage() {
       // Fallback to lower resolution
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false,
         });
         streamRef.current = stream;
@@ -1325,11 +1325,11 @@ export default function PreviewPage() {
 
       {/* ─── Camera Photo Capture Modal ─── */}
       {isCameraOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 text-white shadow-2xl overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 md:backdrop-blur-sm p-0 md:p-4 animate-in fade-in duration-200">
+          <div className="relative w-full h-full md:h-auto md:max-w-lg md:rounded-3xl bg-black md:bg-slate-900 md:border md:border-slate-800 text-white shadow-2xl overflow-hidden flex flex-col justify-between">
 
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/80">
+            <div className="absolute md:relative top-0 left-0 right-0 z-10 flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/80 to-transparent md:bg-slate-900 md:border-b md:border-slate-800/80">
               <span className="font-bold text-sm tracking-tight flex items-center gap-1.5 text-pink-400">
                 📷 Capture Document Page
               </span>
@@ -1345,7 +1345,7 @@ export default function PreviewPage() {
             </div>
 
             {/* Video Preview viewport */}
-            <div className="relative aspect-[4/3] bg-black flex items-center justify-center overflow-hidden">
+            <div className="relative flex-1 md:flex-none w-full h-full md:h-auto md:aspect-[4/3] bg-black flex items-center justify-center overflow-hidden">
               <video
                 ref={videoRef}
                 playsInline
@@ -1353,7 +1353,7 @@ export default function PreviewPage() {
               />
 
               {isRequestingCamera && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950">
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950 z-20">
                   <div className="w-8 h-8 rounded-full border-4 border-pink-500 border-t-transparent animate-spin" />
                   <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Requesting Camera Access…</p>
                 </div>
@@ -1362,21 +1362,22 @@ export default function PreviewPage() {
 
             {/* Error Message */}
             {cameraError && (
-              <div className="bg-red-950/80 border-t border-red-900/50 px-6 py-3.5 text-xs text-red-300 font-medium flex gap-2">
+              <div className="absolute md:relative bottom-28 md:bottom-auto left-4 right-4 md:left-auto md:right-auto z-20 bg-red-950/90 md:bg-red-950/80 border border-red-900/50 rounded-xl px-4 py-3 text-xs text-red-300 font-medium flex gap-2 shadow-2xl">
                 <span>⚠️</span>
                 <span>{cameraError}</span>
               </div>
             )}
 
             {/* Control Buttons */}
-            <div className="p-6 bg-slate-900 flex justify-center items-center gap-4">
+            <div className="absolute md:relative bottom-0 left-0 right-0 z-10 p-8 md:p-6 bg-gradient-to-t from-black/90 via-black/55 to-transparent md:bg-slate-900 md:from-transparent md:to-transparent flex justify-center items-center gap-4">
               <button
                 type="button"
                 onClick={capturePhoto}
                 disabled={isRequestingCamera || !!cameraError}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-pink-600 to-indigo-700 hover:from-pink-500 hover:to-indigo-655 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-extrabold shadow-lg shadow-pink-600/20 active:scale-95 transition-all text-center flex items-center justify-center gap-2"
+                className="w-20 h-20 md:w-full md:h-auto rounded-full md:rounded-2xl bg-gradient-to-r from-pink-600 to-indigo-700 hover:from-pink-500 hover:to-indigo-655 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-extrabold shadow-lg shadow-pink-600/20 active:scale-95 transition-all text-center flex flex-col md:flex-row items-center justify-center gap-2 border-4 border-white/20 md:border-0"
               >
-                <span>📸</span> Capture Photo
+                <span className="text-2xl md:text-base">📸</span>
+                <span className="md:inline hidden">Capture Photo</span>
               </button>
             </div>
 

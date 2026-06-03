@@ -69,7 +69,11 @@ export default function LandingPageClient() {
     setErrorMsg("");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: 1280, height: 720 },
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
         audio: false,
       });
       streamRef.current = stream;
@@ -85,9 +89,34 @@ export default function LandingPageClient() {
       }, 100);
 
       setRecState("idle");
-    } catch {
-      setErrorMsg("Camera access denied or unavailable. Please check permissions.");
-      setRecState("idle");
+    } catch (err) {
+      console.error("Failed to open high-res camera, trying fallback:", err);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false,
+        });
+        streamRef.current = stream;
+        
+        setTimeout(() => {
+          if (videoPreviewRef.current) {
+            videoPreviewRef.current.srcObject = stream;
+            videoPreviewRef.current.muted = true;
+            videoPreviewRef.current.play().catch((e) => {
+              console.error("Video play failed:", e);
+            });
+          }
+        }, 100);
+
+        setRecState("idle");
+      } catch {
+        setErrorMsg("Camera access denied or unavailable. Please check permissions.");
+        setRecState("idle");
+      }
     }
   };
 
@@ -415,11 +444,11 @@ export default function LandingPageClient() {
 
       {/* ─── Camera Recorder Modal ─── */}
       {isCameraOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 text-white shadow-2xl overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 md:backdrop-blur-sm p-0 md:p-4 animate-in fade-in duration-200">
+          <div className="relative w-full h-full md:h-auto md:max-w-lg md:rounded-3xl bg-black md:bg-slate-900 md:border md:border-slate-800 text-white shadow-2xl overflow-hidden flex flex-col justify-between">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/80">
+            <div className="absolute md:relative top-0 left-0 right-0 z-10 flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/80 to-transparent md:bg-slate-900 md:border-b md:border-slate-800/80">
               <span className="font-bold text-sm tracking-tight flex items-center gap-1.5 text-pink-400">
                 📷 Live Document Capture
               </span>
@@ -434,7 +463,7 @@ export default function LandingPageClient() {
             </div>
 
             {/* Video Preview viewport */}
-            <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
+            <div className="relative flex-1 md:flex-none w-full h-full md:h-auto md:aspect-video bg-black flex items-center justify-center overflow-hidden">
               <video
                 ref={videoPreviewRef}
                 playsInline
@@ -442,14 +471,14 @@ export default function LandingPageClient() {
               />
               
               {recState === "requesting" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950">
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950 z-20">
                   <div className="w-8 h-8 rounded-full border-4 border-pink-500 border-t-transparent animate-spin" />
                   <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Requesting Camera Access…</p>
                 </div>
               )}
 
               {recState === "recording" && (
-                <div className="absolute top-4 left-4 flex items-center gap-1.5 rounded-full bg-red-600 px-3.5 py-1.5 text-[11px] font-bold text-white shadow-lg animate-pulse">
+                <div className="absolute top-20 md:top-4 left-4 flex items-center gap-1.5 rounded-full bg-red-600 px-3.5 py-1.5 text-[11px] font-bold text-white shadow-lg animate-pulse z-20">
                   <span className="h-1.5 w-1.5 rounded-full bg-white" />
                   REC {`${String(Math.floor(recSecs / 60)).padStart(2, "0")}:${String(recSecs % 60).padStart(2, "0")}`}
                 </div>
@@ -458,38 +487,38 @@ export default function LandingPageClient() {
 
             {/* Error Message */}
             {errorMsg && (
-              <div className="bg-red-950/80 border-t border-red-900/50 px-6 py-3.5 text-xs text-red-300 font-medium flex gap-2">
+              <div className="absolute md:relative bottom-28 md:bottom-auto left-4 right-4 md:left-auto md:right-auto z-20 bg-red-950/90 md:bg-red-950/80 border border-red-900/50 rounded-xl px-4 py-3 text-xs text-red-300 font-medium flex gap-2 shadow-2xl">
                 <span>⚠️</span>
                 <span>{errorMsg}</span>
               </div>
             )}
 
             {/* Control Buttons */}
-            <div className="p-6 bg-slate-900 flex justify-center items-center gap-4">
+            <div className="absolute md:relative bottom-0 left-0 right-0 z-10 p-8 md:p-6 bg-gradient-to-t from-black/90 via-black/55 to-transparent md:bg-slate-900 md:from-transparent md:to-transparent flex justify-center items-center gap-4">
               {recState === "idle" && (
                 <button
                   onClick={startRec}
-                  className="flex items-center gap-2 rounded-2xl bg-red-600 hover:bg-red-500 text-white px-8 py-3.5 text-sm font-extrabold shadow-lg shadow-red-600/20 active:scale-95 transition-all"
+                  className="w-20 h-20 md:w-auto md:h-auto rounded-full md:rounded-2xl bg-red-600 hover:bg-red-500 text-white flex flex-col md:flex-row items-center justify-center gap-2 px-0 md:px-8 py-0 md:py-3.5 text-xs md:text-sm font-extrabold shadow-lg shadow-red-600/20 active:scale-95 transition-all border-4 border-white/20 md:border-0"
                 >
-                  <span className="h-2.5 w-2.5 rounded-full bg-white" />
-                  Start Recording
+                  <span className="h-3 w-3 md:h-2.5 md:w-2.5 rounded-full bg-white" />
+                  <span className="md:inline hidden">Start Recording</span>
                 </button>
               )}
 
               {recState === "recording" && (
                 <button
                   onClick={stopRec}
-                  className="flex items-center gap-2 rounded-2xl border-2 border-red-500/80 bg-red-950/20 hover:bg-red-900/10 text-red-200 px-8 py-3 text-sm font-extrabold active:scale-95 transition-all"
+                  className="w-20 h-20 md:w-auto md:h-auto rounded-full md:rounded-2xl border-4 border-red-500/80 md:border-2 bg-red-950/80 md:bg-red-950/20 hover:bg-red-900/20 text-red-200 flex flex-col md:flex-row items-center justify-center gap-2 px-0 md:px-8 py-0 md:py-3 text-xs md:text-sm font-extrabold active:scale-95 transition-all"
                 >
-                  <span className="h-2.5 w-2.5 rounded-sm bg-red-500" />
-                  Stop & Process
+                  <span className="h-3 w-3 md:h-2.5 md:w-2.5 rounded-sm bg-red-500" />
+                  <span className="md:inline hidden">Stop & Process</span>
                 </button>
               )}
 
               {recState === "stopped" && (
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full border-3 border-pink-500 border-t-transparent animate-spin" />
-                  <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Preparing Video Notes…</p>
+                <div className="flex items-center gap-3 bg-slate-900/85 backdrop-blur-md px-4 py-2.5 rounded-full border border-slate-800">
+                  <div className="w-4 h-4 rounded-full border-2 border-pink-500 border-t-transparent animate-spin" />
+                  <p className="text-[10px] text-slate-355 font-bold uppercase tracking-wider">Preparing Video Notes…</p>
                 </div>
               )}
             </div>
