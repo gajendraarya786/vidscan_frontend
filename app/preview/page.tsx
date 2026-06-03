@@ -926,7 +926,7 @@ export default function PreviewPage() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-[#f4f5f9] flex items-center justify-center">
+      <div className="min-h-dvh bg-[#f4f5f9] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pink-600" />
           <p className="text-sm text-slate-550 font-medium">Loading VidScan Workspace...</p>
@@ -937,7 +937,7 @@ export default function PreviewPage() {
 
   return (
 
-    <div className="h-screen bg-[#f0f2f7] text-slate-800 flex flex-col overflow-hidden font-sans select-none">
+    <div className="h-dvh bg-[#f0f2f7] text-slate-800 flex flex-col overflow-hidden font-sans select-none">
 
       {/* ─── Navbar ──────────────────────────────────────────────────────────── */}
       <nav className="bg-gradient-to-r from-pink-600 to-indigo-700 text-white shadow-lg px-4 py-3 flex-shrink-0 z-10">
@@ -966,7 +966,7 @@ export default function PreviewPage() {
           </Link>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col md:flex-row overflow-hidden" style={{height: 'calc(100vh - 52px)'}}>
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden" style={{height: 'calc(100dvh - 52px)'}}>
 
           {/* ─── DESKTOP LEFT PANEL: Thumbnails Strip (Hidden on mobile) ───────── */}
           <div className="hidden md:flex flex-col bg-white border-r border-slate-200/80 flex-shrink-0 overflow-hidden shadow-sm" style={{width: '220px'}}>
@@ -1280,7 +1280,7 @@ export default function PreviewPage() {
             {activeSheet !== "none" && !isCropping && (
               <>
                 <div onClick={() => setActiveSheet("none")} className="absolute inset-0 bg-transparent z-30" />
-                <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-250 rounded-t-3xl p-5 pb-8 z-40 animate-in slide-in-from-bottom duration-200 max-h-[85vh] overflow-y-auto shadow-2xl text-slate-800">
+                <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-250 rounded-t-3xl p-5 pb-[calc(env(safe-area-inset-bottom)+24px)] z-40 animate-in slide-in-from-bottom duration-200 max-h-[85vh] overflow-y-auto shadow-2xl text-slate-800">
                   <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
                   {activeSheet === "filters" && activePage && (
                     <div className="space-y-4 max-h-[60vh] flex flex-col">
@@ -1375,7 +1375,7 @@ export default function PreviewPage() {
 
             {/* ─── MOBILE ONLY: BOTTOM DOCK TOOLBAR ────────────────────────────── */}
             {activePage && (
-              <footer className="md:hidden flex justify-around bg-white border-t border-slate-200 py-3.5 px-2 select-none shrink-0 z-20 shadow-[0_-8px_30px_rgb(0,0,0,0.06)]">
+              <footer className="md:hidden flex justify-around bg-white border-t border-slate-200 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] px-2 select-none shrink-0 z-20 shadow-[0_-8px_30px_rgb(0,0,0,0.06)]">
                 <button onClick={() => { setIsCropping((v) => !v); setActiveSheet("none"); }} className={`flex flex-col items-center gap-1 text-[10px] font-bold w-14 ${isCropping ? "text-pink-600" : "text-slate-500 hover:text-slate-800"}`}>
                   <span className="text-base">✂️</span><span>Crop</span>
                 </button>
