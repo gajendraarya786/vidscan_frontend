@@ -10,7 +10,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://vidscan-backend.up.railway.app/:path*"
+      "destination": "https://gajendraarya-vidscan-backend.hf.space/:path*"
     }
   ],
 
