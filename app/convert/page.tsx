@@ -111,7 +111,7 @@ export default function ConvertPage() {
         height:      { ideal: 2160, min: 480 },
         frameRate:   { ideal: 30, min: 15 },
         // Ask for the sharpest focus mode available
-        // @ts-ignore — advanced constraints not in all TS lib versions
+        // @ts-expect-error — focusMode is a valid advanced constraint but missing from some TS lib versions
         focusMode:   { ideal: "continuous" },
       },
       audio: false,
