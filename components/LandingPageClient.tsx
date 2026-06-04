@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { pageStore } from "@/lib/pageStore";
+import VidScanLogo from "@/components/VidScanLogo";
+
 
 
 
@@ -188,8 +190,9 @@ export default function LandingPageClient() {
       {/* ─── Navigation Bar ─── */}
       <nav className="border-b border-slate-100 bg-white/70 backdrop-blur-md sticky top-0 z-30 transition-all">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
-          <span className="font-extrabold text-slate-900 tracking-tight text-base flex items-center gap-1.5">
-            📄 VidScan
+          <span className="font-extrabold text-slate-900 tracking-tight text-base flex items-center gap-2">
+            <VidScanLogo size={24} />
+            <span>VidScan</span>
           </span>
           <Link
             href="/convert"

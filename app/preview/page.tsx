@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { pageStore, type ScannedPageItem } from "@/lib/pageStore";
 import PerspectiveCropOverlay, { type PerspectivePoints } from "@/components/PerspectiveCropOverlay";
+import VidScanLogo from "@/components/VidScanLogo";
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -1058,9 +1059,9 @@ export default function PreviewPage() {
             <svg className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             Back to scanner
           </Link>
-          <span className="font-bold text-white text-sm hidden md:flex items-center gap-2 tracking-tight">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-            VidScan Editor
+          <span className="font-bold text-white text-sm hidden md:flex items-center gap-2.5 tracking-tight">
+            <VidScanLogo size={20} />
+            <span>VidScan Editor</span>
           </span>
           <div className="flex items-center justify-end">
             {pages.length > 0 && (

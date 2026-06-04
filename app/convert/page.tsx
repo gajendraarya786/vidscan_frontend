@@ -15,6 +15,7 @@ import ProgressBar from "@/components/ProgressBar";
 import { pageStore } from "@/lib/pageStore";
 import type { ScannedPageItem } from "@/lib/pageStore";
 import { supabase } from "@/lib/supabaseClient";
+import VidScanLogo from "@/components/VidScanLogo";
 
 
 /* ─── constants ─── */
@@ -376,7 +377,10 @@ export default function ConvertPage() {
           <Link href="/" className="text-sm text-gray-500 hover:text-pink-600 transition">
             ← Back
           </Link>
-          <span className="font-semibold text-gray-900 text-sm">📄 VidScan</span>
+          <span className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+            <VidScanLogo size={20} />
+            <span>VidScan</span>
+          </span>
         </div>
       </nav>
 
