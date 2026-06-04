@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
@@ -86,6 +87,7 @@ const YEAR = new Date().getFullYear();
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const adsenseId = process.env.NEXT_PUBLIC_ADSENSE_ID;
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
 
   return (
     <html lang="en" className="scroll-smooth">
@@ -114,6 +116,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             crossOrigin="anonymous"
           />
         ) : null}
+
+        {/* Google Analytics 4 */}
+        {gaId ? <GoogleAnalytics gaId={gaId} /> : null}
       </body>
     </html>
   );
