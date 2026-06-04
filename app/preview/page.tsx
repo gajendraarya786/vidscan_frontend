@@ -420,6 +420,63 @@ function applyCanvasFilter(
   });
 }
 
+// ─── Filter Preview Component ──────────────────────────────────────────────────
+
+interface FilterPreviewProps {
+  thumbnail: string;
+  filterId: ScanFilter;
+  rotation: number;
+}
+
+function FilterPreview({ thumbnail, filterId, rotation }: FilterPreviewProps) {
+  const [filteredSrc, setFilteredSrc] = useState<string>("");
+
+  useEffect(() => {
+    let active = true;
+    if (!thumbnail) return;
+
+    const intensity = (
+      filterId === "whiteboard" ||
+      filterId === "adobe_bw" ||
+      filterId === "soft_bw" ||
+      filterId === "sharp_color"
+    ) ? 50 : 100;
+
+    applyCanvasFilter(thumbnail, filterId, intensity)
+      .then((res) => {
+        if (active) {
+          setFilteredSrc(res);
+        }
+      })
+      .catch((err) => {
+        console.error("FilterPreview error:", err);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [thumbnail, filterId]);
+
+  if (!filteredSrc) {
+    return (
+      <div className="w-full h-full bg-slate-100 flex items-center justify-center animate-pulse rounded-lg">
+        <span className="text-[10px] text-slate-400">...</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={filteredSrc}
+      alt={filterId}
+      className="max-h-full max-w-full object-contain"
+      style={{
+        transform: `rotate(${rotation}deg)`
+      }}
+    />
+  );
+}
+
 // ─── Main Page Component ──────────────────────────────────────────────────────
 
 export default function PreviewPage() {
@@ -435,6 +492,7 @@ export default function PreviewPage() {
   const [isCropApplying, setIsCropApplying] = useState(false);
 
   const [activeSheet, setActiveSheet] = useState<"none" | "thumbnails" | "filters" | "adjust">("none");
+  const [activePageThumbnail, setActivePageThumbnail] = useState<string>("");
 
   // Drag & Drop thumbnails
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
@@ -514,6 +572,54 @@ export default function PreviewPage() {
   }, [activeIdx]);
 
   const activePage = pages[activeIdx];
+
+  // Generate a downscaled thumbnail of the active page's original image for filter previews
+  useEffect(() => {
+    if (!activePage) {
+      setActivePageThumbnail("");
+      return;
+    }
+
+    let active = true;
+    const img = new Image();
+    img.onload = () => {
+      if (!active) return;
+      try {
+        const maxDim = 120;
+        let width = img.naturalWidth || img.width;
+        let height = img.naturalHeight || img.height;
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          setActivePageThumbnail(canvas.toDataURL("image/jpeg", 0.75));
+        }
+      } catch (e) {
+        console.error("Error creating thumbnail:", e);
+      }
+    };
+    img.src = activePage.originalImage.startsWith("data:")
+      ? activePage.originalImage
+      : `data:image/jpeg;base64,${activePage.originalImage}`;
+
+    return () => {
+      active = false;
+    };
+  }, [activePage?.originalImage, activePage?.id, activePage]);
 
   const updateActivePage = (updates: Partial<EditorPage>) => {
     if (!activePage) return;
@@ -1094,7 +1200,9 @@ export default function PreviewPage() {
                   onClick={() => fileInputRef.current?.click()}
                   className="group flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-pink-200 bg-pink-50/50 py-2.5 transition-all hover:border-pink-400 hover:bg-pink-50 hover:shadow-sm focus:outline-none"
                 >
-                  <svg className="h-4 w-4 text-pink-400 group-hover:text-pink-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  <svg className="h-4 w-4 text-pink-400 group-hover:text-pink-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12M12 3L7 8m5-5l5 5M5 15v3a2 2 0 002 2h10a2 2 0 002-2v-3" />
+                  </svg>
                   <span className="text-[10px] font-bold text-slate-500 group-hover:text-pink-600 transition-colors">Upload</span>
                 </button>
                 <button
@@ -1102,8 +1210,12 @@ export default function PreviewPage() {
                   onClick={() => { setCaptureMode("add"); openCamera(); }}
                   className="group flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-indigo-200 bg-indigo-50/50 py-2.5 transition-all hover:border-indigo-400 hover:bg-indigo-50 hover:shadow-sm focus:outline-none"
                 >
-                  <svg className="h-4 w-4 text-indigo-400 group-hover:text-indigo-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><circle cx="12" cy="13" r="3" /></svg>
-                  <span className="text-[10px] font-bold text-slate-500 group-hover:text-indigo-600 transition-colors">Camera</span>
+                  <svg className="h-4 w-4 text-indigo-400 group-hover:text-indigo-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 11a2 2 0 012-2h3l1-2h4l1 2h1a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7z" />
+                    <circle cx="10" cy="14" r="2.5" stroke="currentColor" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 5v6M15 8h6" />
+                  </svg>
+                  <span className="text-[10px] font-bold text-slate-500 group-hover:text-indigo-600 transition-colors">Add Photo</span>
                 </button>
               </div>
             </div>
@@ -1288,18 +1400,24 @@ export default function PreviewPage() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="shrink-0 w-16 aspect-[3/4] border border-dashed border-pink-200 bg-gradient-to-b from-white to-pink-50/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-all text-pink-600 active:scale-95 shadow-sm"
+                      className="shrink-0 w-16 aspect-[3/4] border border-dashed border-pink-200 bg-gradient-to-b from-white to-pink-50/20 rounded-xl flex flex-col items-center justify-center gap-1.5 transition-all text-pink-600 active:scale-95 shadow-sm"
                     >
-                      <span className="text-base leading-none">📁</span>
+                      <svg className="h-5 w-5 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12M12 3L7 8m5-5l5 5M5 15v3a2 2 0 002 2h10a2 2 0 002-2v-3" />
+                      </svg>
                       <span className="text-[9px] font-bold text-slate-600 font-medium">Upload</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => { setCaptureMode("add"); openCamera(); }}
-                      className="shrink-0 w-16 aspect-[3/4] border border-dashed border-indigo-200 bg-gradient-to-b from-white to-indigo-50/20 rounded-xl flex flex-col items-center justify-center gap-1 transition-all text-indigo-655 active:scale-95 shadow-sm"
+                      className="shrink-0 w-16 aspect-[3/4] border border-dashed border-indigo-200 bg-gradient-to-b from-white to-indigo-50/20 rounded-xl flex flex-col items-center justify-center gap-1.5 transition-all text-indigo-650 active:scale-95 shadow-sm"
                     >
-                      <span className="text-base leading-none">📷</span>
-                      <span className="text-[9px] font-bold text-slate-655 font-medium">Capture</span>
+                      <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 11a2 2 0 012-2h3l1-2h4l1 2h1a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7z" />
+                        <circle cx="10" cy="14" r="2.5" stroke="currentColor" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18 5v6M15 8h6" />
+                      </svg>
+                      <span className="text-[9px] font-bold text-slate-655 font-medium">Add Photo</span>
                     </button>
                   </div>
                 </div>
@@ -1317,65 +1435,65 @@ export default function PreviewPage() {
                 <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-250 rounded-t-3xl p-5 pb-[calc(env(safe-area-inset-bottom)+24px)] z-40 animate-in slide-in-from-bottom duration-200 max-h-[85vh] overflow-y-auto shadow-2xl text-slate-800">
                   <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
                   {activeSheet === "filters" && activePage && (
-                    <div className="space-y-4 max-h-[60vh] flex flex-col">
+                    <div className="space-y-3 flex flex-col">
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-widest block flex-shrink-0">
                         Choose Scan Enhancement
                       </span>
-                      <div className="space-y-2 overflow-y-auto flex-1 pb-4">
+
+                      {/* Relocated Intensity Slider above the filters strip */}
+                      {activePage.filter !== "original" && (
+                        <div className="px-1 py-1.5 bg-slate-50/50 rounded-xl flex-shrink-0 text-slate-800 animate-in fade-in duration-200">
+                          <div className="flex justify-between items-center mb-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            <span>
+                              {activePage.filter === "whiteboard" ? "Line Thickness" : "Enhancement Intensity"}
+                            </span>
+                            <span className="text-pink-600 font-bold font-mono text-[11px]">{activePage.filterIntensity}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={activePage.filterIntensity}
+                            onChange={(e) => handleIntensityChange(parseInt(e.target.value))}
+                            className="w-full h-1.5 appearance-none rounded-full bg-slate-200 accent-pink-600 cursor-pointer focus:outline-none"
+                          />
+                        </div>
+                      )}
+
+                      {/* Horizontally scrollable list of filter preview cards */}
+                      <div className="flex gap-3 overflow-x-auto py-2 shrink-0 scrollbar-none">
                         {FILTERS.map((f) => {
                           const isActive = activePage.filter === f.id;
-                          const hasIntensity = f.id !== "original";
                           return (
                             <div
                               key={f.id}
-                              className={`group flex flex-col rounded-xl overflow-hidden border transition-all duration-200
+                              onClick={() => handleFilterSelect(f.id)}
+                              className={`group flex flex-col items-center shrink-0 w-20 p-1.5 rounded-xl border cursor-pointer select-none transition-all duration-200
                                 ${isActive
-                                  ? 'border-pink-500 shadow-sm bg-white'
-                                  : 'border-slate-150 bg-slate-50 text-slate-650'
+                                  ? 'border-pink-500 shadow-sm bg-pink-50/10'
+                                  : 'border-slate-150 bg-slate-50 text-slate-650 active:bg-slate-100'
                                 }`}
                             >
-                              {/* Filter click header */}
-                              <div
-                                onClick={() => handleFilterSelect(f.id)}
-                                className={`w-full flex items-center gap-3 px-3.5 py-3 cursor-pointer select-none text-xs font-semibold
-                                  ${isActive
-                                    ? 'bg-gradient-to-r from-pink-600 to-indigo-600 text-white'
-                                    : 'text-slate-700 active:bg-slate-100'
-                                  }`}
+                              {/* Filter Preview Box */}
+                              <div className={`w-full aspect-[3/4] relative bg-white border rounded-lg overflow-hidden flex items-center justify-center mb-1.5
+                                ${isActive ? 'border-pink-300' : 'border-slate-200'}`}
                               >
-                                <span className="text-base flex-shrink-0">{f.icon}</span>
-                                <div className="text-left flex-1 min-w-0">
-                                  <div className="font-bold text-xs">{f.label}</div>
-                                  <div className={`text-[10px] ${isActive ? 'text-white/80' : 'text-slate-450'}`}>
-                                    {f.description}
-                                  </div>
-                                </div>
+                                <FilterPreview
+                                  thumbnail={activePageThumbnail}
+                                  filterId={f.id}
+                                  rotation={activePage.rotation}
+                                />
                                 {isActive && (
-                                  <svg className="h-3.5 w-3.5 flex-shrink-0 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
+                                  <div className="absolute top-1 right-1 bg-pink-600 text-white rounded-full p-0.5 shadow-md">
+                                    <svg className="h-2.5 w-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                  </div>
                                 )}
                               </div>
-
-                              {/* Nested Intensity Dropdown Slider */}
-                              {isActive && hasIntensity && (
-                                <div className="px-4 pb-3.5 pt-2.5 bg-slate-50 border-t border-slate-100 text-slate-800 animate-in slide-in-from-top duration-200">
-                                  <div className="flex justify-between items-center mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                                    <span>
-                                      {f.id === "whiteboard" ? "Line Thickness" : "Enhancement Intensity"}
-                                    </span>
-                                    <span className="text-pink-600 font-bold font-mono text-[11px]">{activePage.filterIntensity}%</span>
-                                  </div>
-                                  <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    value={activePage.filterIntensity}
-                                    onChange={(e) => handleIntensityChange(parseInt(e.target.value))}
-                                    className="w-full h-1.5 appearance-none rounded-full bg-slate-200 accent-pink-600 cursor-pointer focus:outline-none"
-                                  />
-                                </div>
-                              )}
+                              <span className={`text-[10px] font-bold text-center truncate w-full ${isActive ? 'text-pink-600' : 'text-slate-650'}`}>
+                                {f.label}
+                              </span>
                             </div>
                           );
                         })}
@@ -1410,20 +1528,73 @@ export default function PreviewPage() {
             {/* ─── MOBILE ONLY: BOTTOM DOCK TOOLBAR ────────────────────────────── */}
             {activePage && (
               <footer className="md:hidden flex justify-around bg-white border-t border-slate-200 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] px-2 select-none shrink-0 z-20 shadow-[0_-8px_30px_rgb(0,0,0,0.06)]">
-                <button onClick={() => { setIsCropping((v) => !v); setActiveSheet("none"); }} className={`flex flex-col items-center gap-1 text-[10px] font-bold w-14 ${isCropping ? "text-pink-600" : "text-slate-500 hover:text-slate-800"}`}>
-                  <span className="text-base">✂️</span><span>Crop</span>
+                <button onClick={() => { setIsCropping((v) => !v); setActiveSheet("none"); }} className={`flex flex-col items-center gap-1.5 text-[10px] font-bold w-14 transition-colors ${isCropping ? "text-pink-600" : "text-slate-500 hover:text-slate-800"}`}>
+                  <svg className="h-[22px] w-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 2v14a2 2 0 002 2h14M18 22V8a2 2 0 00-2-2H2" />
+                  </svg>
+                  <span>Crop</span>
                 </button>
-                <button onClick={() => { setActiveSheet(activeSheet === "filters" ? "none" : "filters"); setIsCropping(false); }} className={`flex flex-col items-center gap-1 text-[10px] font-bold transition-colors w-14 ${activeSheet === "filters" && !isCropping ? "text-pink-600" : "text-slate-500 hover:text-slate-800"}`}>
-                  <span className="text-base">🎨</span><span>Filters</span>
+                <button onClick={() => { setActiveSheet(activeSheet === "filters" ? "none" : "filters"); setIsCropping(false); }} className={`flex flex-col items-center gap-1.5 text-[10px] font-bold transition-colors w-14 ${activeSheet === "filters" && !isCropping ? "text-pink-600" : "text-slate-500 hover:text-slate-800"}`}>
+                  <svg className="h-[22px] w-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                    <circle cx="9.5" cy="12" r="5.5" stroke="currentColor" fill="currentColor" fillOpacity={0.15} />
+                    <circle cx="14.5" cy="12" r="5.5" stroke="currentColor" />
+                  </svg>
+                  <span>Filters</span>
                 </button>
-                <button onClick={() => { setActiveSheet(activeSheet === "adjust" ? "none" : "adjust"); setIsCropping(false); }} className={`flex flex-col items-center gap-1 text-[10px] font-bold transition-colors w-14 ${activeSheet === "adjust" && !isCropping ? "text-pink-600" : "text-slate-500 hover:text-slate-800"}`}>
-                  <span className="text-base">⚙️</span><span>Adjust</span>
+                <button onClick={() => { setActiveSheet(activeSheet === "adjust" ? "none" : "adjust"); setIsCropping(false); }} className={`flex flex-col items-center gap-1.5 text-[10px] font-bold transition-colors w-14 ${activeSheet === "adjust" && !isCropping ? "text-pink-600" : "text-slate-500 hover:text-slate-800"}`}>
+                  <svg className="h-[22px] w-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                    <circle cx="12" cy="12" r="5.5" stroke="currentColor" />
+                    <path d="M12 6.5a5.5 5.5 0 0 1 5.5 5.5 5.5 5.5 0 0 1-5.5 5.5V6.5z" fill="currentColor" />
+                    <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" strokeLinecap="round" />
+                  </svg>
+                  <span>Adjust</span>
                 </button>
-                <button onClick={handleRotateRight} className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-800 w-14">
-                  <span className="text-base">🔄</span><span>Rotate</span>
+                <button onClick={handleRotateRight} className="flex flex-col items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-slate-800 w-14 transition-colors">
+                  <svg className="h-[22px] w-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Rotate</span>
                 </button>
-                <button onClick={() => { setCaptureMode("recapture"); openCamera(); }} className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-800 w-14 transition-colors">
-                  <span className="text-base">📷</span><span>Recapture</span>
+                <button onClick={() => { setCaptureMode("recapture"); openCamera(); }} className="flex flex-col items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-slate-800 w-14 transition-colors">
+                  <svg className="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    {/* Camera solid body with lens cutout */}
+                    <path
+                      d="M4 7a2 2 0 012-2h2.5l1.3-1.8A1 1 0 0110.6 3h2.8c.3 0 .6.1.8.4L15.5 5H18a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V7zm6 7.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z"
+                      fill="currentColor"
+                      fillRule="evenodd"
+                    />
+                    {/* Thick white mask to create a clean gap around the retake arrow */}
+                    <path
+                      d="M8 19a4 4 0 014-4h5.5"
+                      stroke="white"
+                      strokeWidth={6}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M14.5 12.2l3 2.8-3 2.8"
+                      stroke="white"
+                      strokeWidth={6}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    {/* The actual retake curved arrow */}
+                    <path
+                      d="M8 19a4 4 0 014-4h5.5"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M14.5 12.2l3 2.8-3 2.8"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span>Retake</span>
                 </button>
               </footer>
             )}
@@ -1563,10 +1734,18 @@ export default function PreviewPage() {
                                   : 'text-slate-600'
                                 }`}
                             >
-                              <span className="text-sm flex-shrink-0">{f.icon}</span>
+                              <div className={`w-9 h-12 flex-shrink-0 relative bg-white border rounded overflow-hidden flex items-center justify-center
+                                ${isActive ? 'border-pink-300' : 'border-slate-200'}`}
+                              >
+                                <FilterPreview
+                                  thumbnail={activePageThumbnail}
+                                  filterId={f.id}
+                                  rotation={activePage.rotation}
+                                />
+                              </div>
                               <div className="text-left flex-1 min-w-0">
                                 <div className="font-bold truncate">{f.label}</div>
-                                <div className={`text-[9px] truncate ${isActive ? 'text-white/75' : 'text-slate-400'}`}>
+                                <div className={`text-[9px] truncate ${isActive ? 'text-white/75' : 'text-slate-450'}`}>
                                   {f.description}
                                 </div>
                               </div>
