@@ -101,32 +101,54 @@ export default function ConvertPage() {
   const openCamera = async () => {
     setRecState("requesting");
     setErrorMsg("");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-        audio: false,
-      });
+
+    // Try to request the highest resolution the device camera supports.
+    // Using { ideal } lets the browser pick the best it can — it never rejects.
+    const highQualityConstraints: MediaStreamConstraints = {
+      video: {
+        facingMode: { ideal: "environment" }, // prefer rear camera on mobile
+        width:       { ideal: 3840, min: 640 },  // 4K → 1080p → 720p → whatever fits
+        height:      { ideal: 2160, min: 480 },
+        frameRate:   { ideal: 30, min: 15 },
+        // Ask for the sharpest focus mode available
+        // @ts-ignore — advanced constraints not in all TS lib versions
+        focusMode:   { ideal: "continuous" },
+      },
+      audio: false,
+    };
+
+    const fallbackConstraints: MediaStreamConstraints = {
+      video: {
+        facingMode: { ideal: "environment" },
+        width:  { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30 },
+      },
+      audio: false,
+    };
+
+    const tryOpen = async (constraints: MediaStreamConstraints) => {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
+
+      // Log the actual track settings so we can debug in the console
+      const track = stream.getVideoTracks()[0];
+      console.info("[VidScan] Camera track settings:", track.getSettings());
+
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = stream;
         videoPreviewRef.current.muted = true;
         videoPreviewRef.current.play();
       }
       setRecState("idle");
+    };
+
+    try {
+      await tryOpen(highQualityConstraints);
     } catch (err) {
-      console.error("Failed to open high-res camera, trying fallback:", err);
+      console.warn("[VidScan] High-quality constraints failed, falling back:", err);
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false,
-        });
-        streamRef.current = stream;
-        if (videoPreviewRef.current) {
-          videoPreviewRef.current.srcObject = stream;
-          videoPreviewRef.current.muted = true;
-          videoPreviewRef.current.play();
-        }
-        setRecState("idle");
+        await tryOpen(fallbackConstraints);
       } catch {
         setErrorMsg("Camera access denied. Please allow camera permissions and try again.");
         setRecState("idle");
@@ -137,10 +159,31 @@ export default function ConvertPage() {
   const startRec = () => {
     if (!streamRef.current) return;
     chunksRef.current = [];
-    const mime = ["video/webm;codecs=vp9","video/webm","video/mp4"].find(
-      (m) => MediaRecorder.isTypeSupported(m)
-    ) ?? "video/webm";
-    const mr = new MediaRecorder(streamRef.current, { mimeType: mime });
+
+    // Pick best supported codec — VP9 is highest quality, fall back to VP8 / H.264
+    const mime = [
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm",
+      "video/mp4",
+    ].find((m) => MediaRecorder.isTypeSupported(m)) ?? "video/webm";
+
+    // Detect the actual resolution being captured so we can set an appropriate bitrate
+    const track = streamRef.current.getVideoTracks()[0];
+    const { width = 1280, height = 720 } = track.getSettings();
+    const pixels = (width ?? 1280) * (height ?? 720);
+
+    // Scale bitrate with resolution: ~8 Mbps for 1080p, ~20 Mbps for 4K
+    const videoBitsPerSecond = Math.round((pixels / (1920 * 1080)) * 8_000_000);
+
+    const mr = new MediaRecorder(streamRef.current, {
+      mimeType: mime,
+      videoBitsPerSecond: Math.max(4_000_000, Math.min(videoBitsPerSecond, 25_000_000)),
+    });
+
+    console.info(`[VidScan] Recording ${width}x${height} @ ~${Math.round(videoBitsPerSecond / 1_000_000)} Mbps | codec: ${mime}`);
+
     mrRef.current = mr;
     mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
     mr.onstop = () => {
