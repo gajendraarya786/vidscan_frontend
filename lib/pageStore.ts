@@ -10,11 +10,14 @@
  * need to re-scan anyway.
  */
 
+import { type PerspectivePoints } from "@/components/PerspectiveCropOverlay";
+
 export interface ScannedPageItem {
   page_number: number;
   image: string;   // base64-encoded JPEG
   width: number;
   height: number;
+  quad?: PerspectivePoints;
 }
 
 let _pages: ScannedPageItem[] = [];

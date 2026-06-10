@@ -5,6 +5,7 @@ import Link from "next/link";
 import { pageStore, type ScannedPageItem } from "@/lib/pageStore";
 import PerspectiveCropOverlay, { type PerspectivePoints } from "@/components/PerspectiveCropOverlay";
 import VidScanLogo from "@/components/VidScanLogo";
+import { applyPerspectiveCropClient } from "@/lib/cropHelper";
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -21,6 +22,7 @@ interface EditorPage {
   brightness: number;    // -50 to +50
   contrast: number;      // -50 to +50
   crop?: PerspectivePoints;
+  detectedQuad?: PerspectivePoints;
 }
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -530,6 +532,7 @@ export default function PreviewPage() {
         filterIntensity: 100,
         brightness: 0,
         contrast: 0,
+        detectedQuad: p.quad,
       }));
       setPages(mapped);
     }
@@ -933,24 +936,11 @@ export default function PreviewPage() {
     setIsCropApplying(true);
     setErrorMsg("");
     try {
-      const res = await fetch(`${API_URL}/apply-crop`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          image: activePage.rawImage,
-          tl: crop.tl,
-          tr: crop.tr,
-          br: crop.br,
-          bl: crop.bl,
-        }),
-      });
+      // Slight timeout to allow UI to render the loading state
+      await new Promise(resolve => setTimeout(resolve, 50));
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || `Server error: ${res.status}`);
-      }
-
-      const { image: croppedB64 } = (await res.json()) as { image: string };
+      const croppedB64WithPrefix = await applyPerspectiveCropClient(activePage.rawImage, crop);
+      const croppedB64 = croppedB64WithPrefix.split(",")[1] || croppedB64WithPrefix;
 
       const filtered = await applyCanvasFilter(croppedB64, activePage.filter, activePage.filterIntensity);
       const cleanB64 = filtered.split(",")[1] || filtered;
@@ -962,9 +952,10 @@ export default function PreviewPage() {
       });
 
       setIsCropping(false);
-      showToast("Crop applied successfully");
+      showToast("Crop applied instantly");
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Crop failed. Is the backend running?";
+      console.error(e);
+      const msg = e instanceof Error ? e.message : "Crop failed.";
       setErrorMsg(msg);
     } finally {
       setIsCropApplying(false);
@@ -1255,7 +1246,7 @@ export default function PreviewPage() {
                         <PerspectiveCropOverlay
                           imageUrl={`data:image/jpeg;base64,${activePage.rawImage}`}
                           imageAlt={`Page ${activeIdx + 1} Editor`}
-                          initialPoints={activePage.crop}
+                          initialPoints={activePage.crop || activePage.detectedQuad}
                           onConfirm={handleCropConfirm}
                           onCancel={() => setIsCropping(false)}
                         />
