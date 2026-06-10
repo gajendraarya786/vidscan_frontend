@@ -25,7 +25,7 @@ interface EditorPage {
   detectedQuad?: PerspectivePoints;
 }
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
+// API_URL removed
 
 const FILTERS: { id: ScanFilter; label: string; description: string; icon: string }[] = [
   { id: "original", label: "Original", description: "No enhancement", icon: "🖼️" },
@@ -512,6 +512,7 @@ export default function PreviewPage() {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
   const [isRequestingCamera, setIsRequestingCamera] = useState(false);
+  const [pdfName, setPdfName] = useState("vidscan_document");
   const [captureMode, setCaptureMode] = useState<"add" | "recapture">("add");
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -990,38 +991,61 @@ export default function PreviewPage() {
     setErrorMsg("");
 
     try {
-      const res = await fetch(`${API_URL}/generate-pdf`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pages: pages.map((p) => ({
-            image: p.image, // Sends the fully filtered/cropped base64 image directly
-            rotation: p.rotation,
-            brightness: p.brightness,
-            contrast: p.contrast,
-          })),
-        }),
+      // Import jsPDF dynamically to keep bundle size small
+      const { jsPDF } = await import("jspdf");
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "pt",
+        format: "a4",
       });
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || `Server error: ${res.status}`);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        if (i > 0) pdf.addPage();
+
+        // Load image to get true dimensions
+        const img = new Image();
+        const imgPromise = new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = `data:image/jpeg;base64,${page.image}`;
+        });
+        await imgPromise;
+
+        const imgWidth = img.width;
+        const imgHeight = img.height;
+
+        // Fit within A4 size
+        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+        const targetWidth = imgWidth * ratio;
+        const targetHeight = imgHeight * ratio;
+
+        const xOffset = (pdfWidth - targetWidth) / 2;
+        const yOffset = (pdfHeight - targetHeight) / 2;
+
+        pdf.addImage(
+          img,
+          "JPEG",
+          xOffset,
+          yOffset,
+          targetWidth,
+          targetHeight,
+          undefined,
+          "FAST"
+        );
       }
 
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
+      const finalName = pdfName.trim() || "vidscan_document";
+      pdf.save(`${finalName}.pdf`);
 
-      a.download = "vidscan_document.pdf";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showToast("PDF Downloaded successfully!");
+      showToast("PDF Downloaded instantly!");
     } catch (e: unknown) {
       console.error(e);
-      const msg = e instanceof Error ? e.message : "Failed to generate PDF. Is the backend API running?";
+      const msg = e instanceof Error ? e.message : "Failed to generate PDF client-side.";
       setErrorMsg(msg);
     } finally {
       setIsGenerating(false);
@@ -1050,11 +1074,26 @@ export default function PreviewPage() {
             <svg className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             Back to scanner
           </Link>
-          <span className="font-bold text-white text-sm hidden md:flex items-center gap-2.5 tracking-tight">
-            <VidScanLogo size={20} />
-            <span>VidScan Editor</span>
-          </span>
-          <div className="flex items-center justify-end">
+          <div className="flex-1 flex justify-center px-2">
+            {pages.length > 0 ? (
+              <div className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-md px-2.5 py-1.5 focus-within:bg-white focus-within:text-slate-900 transition-colors w-full max-w-[180px]">
+                <input
+                  type="text"
+                  value={pdfName}
+                  onChange={(e) => setPdfName(e.target.value)}
+                  className="bg-transparent border-none text-xs text-white focus-within:text-slate-900 placeholder-white/50 w-full focus:outline-none"
+                  placeholder="vidscan_document"
+                />
+                <span className="text-[10px] opacity-70 font-mono">.pdf</span>
+              </div>
+            ) : (
+              <span className="font-bold text-white text-sm hidden md:flex items-center gap-2.5 tracking-tight">
+                <VidScanLogo size={20} />
+                <span>VidScan Editor</span>
+              </span>
+            )}
+          </div>
+          <div className="flex items-center justify-end shrink-0">
             {pages.length > 0 && (
               <button
                 onClick={handleDownloadPdf}
